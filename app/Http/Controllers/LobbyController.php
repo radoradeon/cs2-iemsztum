@@ -149,10 +149,41 @@ class LobbyController extends Controller
         $half = ceil($players->count() / 2);
 
         $i = 0;
+        $captainA = null;
+        $captainB = null;
+
         foreach ($players as $player) {
             $team = ($i < $half) ? 'team_a' : 'team_b';
             $player->update(['team' => $team, 'is_ready' => false]);
+            
+            if ($team === 'team_a' && !$captainA) $captainA = $player->user_id;
+            if ($team === 'team_b' && !$captainB) $captainB = $player->user_id;
+            
             $i++;
+        }
+
+        $lobby->update([
+            'team_a_captain_id' => $captainA,
+            'team_b_captain_id' => $captainB
+        ]);
+
+        broadcast(new LobbyStateUpdated($lobby->id));
+        return back();
+    }
+
+    public function setCaptain(Request $request, Lobby $lobby)
+    {
+        if (Auth::id() !== $lobby->leader_id) return abort(403);
+
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'team' => 'required|in:team_a,team_b',
+        ]);
+
+        if ($validated['team'] === 'team_a') {
+            $lobby->update(['team_a_captain_id' => $validated['user_id']]);
+        } else {
+            $lobby->update(['team_b_captain_id' => $validated['user_id']]);
         }
 
         broadcast(new LobbyStateUpdated($lobby->id));
@@ -423,12 +454,12 @@ class LobbyController extends Controller
                 $rcon->sendCommand("sv_password \"\"");
             }
 
-            $configUrl = "https://badland-coming-germless.ngrok-free.dev/api/match/json-config/{$lobby->id}";
+            $configUrl = env('APP_URL') . "/api/match/json-config/{$lobby->id}";
             $rcon->sendCommand("matchzy_loadmatch_url \"{$configUrl}\"");
 
             $lobby->update(['match_status' => 'live']);
         } catch (\Exception $e) {
-            // Obsługa błędu
+            // Logowanie ewentualnych błędów z rcon
         }
 
         broadcast(new LobbyStateUpdated($lobby->id));

@@ -12,6 +12,8 @@ class Lobby extends Model
     protected $fillable = [
         'code',
         'leader_id',
+        'team_a_captain_id',
+        'team_b_captain_id',
         'status',
         'format',
         'team_size',
@@ -27,7 +29,8 @@ class Lobby extends Model
         'match_status',
         'score_a',
         'score_b',
-        'match_live_data'
+        'match_live_data',
+        'demo_links'
     ];
 
     protected $casts = [
@@ -35,6 +38,7 @@ class Lobby extends Model
         'map_pool' => 'array',
         'veto_state' => 'array',
         'match_live_data' => 'array',
+        'demo_links' => 'array'
     ];
 
     public function leader()

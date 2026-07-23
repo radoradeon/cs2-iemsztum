@@ -10,3 +10,4 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/match/json-config/{lobby}', [MatchApiController::class, 'getMatchJsonConfig']);
 Route::post('/match/webhook', [MatchApiController::class, 'handleWebhook']);
+Route::post('/match/demo-upload/{lobby}', [MatchApiController::class, 'handleDemoUpload']);

@@ -47,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/lobbies/{lobby}/move', [LobbyController::class, 'movePlayer'])->name('lobbies.move');
     Route::post('/lobbies/{lobby}/ready', [LobbyController::class, 'toggleReady'])->name('lobbies.ready');
     Route::post('/lobbies/{lobby}/chat', [LobbyController::class, 'sendMessage'])->name('lobbies.chat');
+    Route::post('/lobbies/{lobby}/captain', [LobbyController::class, 'setCaptain'])->name('lobbies.captain');
     
     Route::delete('/lobbies/{lobby}', [LobbyController::class, 'destroy'])->name('lobbies.destroy');
 

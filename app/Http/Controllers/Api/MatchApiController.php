@@ -15,48 +15,42 @@ class MatchApiController extends Controller
 
     public function getMatchJsonConfig(Lobby $lobby)
     {
-        Log::info("MatchZy próbuje pobrać config dla lobby ID: {$lobby->id}");
+        Log::info("MatchZy pobiera config dla lobby ID: {$lobby->id}");
 
+        $playersA = []; $coachesA = [];
         $teamAPlayers = $lobby->players()->where('team', 'team_a')->with('user')->get();
-        $playersA = [];
-        $coachesA = [];
         foreach ($teamAPlayers as $p) {
             if ($p->user && !empty($p->user->steam_id)) {
                 $steamId64 = trim($p->user->steam_id);
-                if ($p->role === 'coach') {
-                    $coachesA[$steamId64] = $p->user->nickname ?? 'Coach A';
-                } else {
-                    $playersA[$steamId64] = $p->user->nickname ?? 'Player A';
-                }
+                $p->role === 'coach' ? $coachesA[$steamId64] = $p->user->nickname : $playersA[$steamId64] = $p->user->nickname;
             }
         }
 
+        $playersB = []; $coachesB = [];
         $teamBPlayers = $lobby->players()->where('team', 'team_b')->with('user')->get();
-        $playersB = [];
-        $coachesB = [];
         foreach ($teamBPlayers as $p) {
             if ($p->user && !empty($p->user->steam_id)) {
                 $steamId64 = trim($p->user->steam_id);
-                if ($p->role === 'coach') {
-                    $coachesB[$steamId64] = $p->user->nickname ?? 'Coach B';
-                } else {
-                    $playersB[$steamId64] = $p->user->nickname ?? 'Player B';
-                }
+                $p->role === 'coach' ? $coachesB[$steamId64] = $p->user->nickname : $playersB[$steamId64] = $p->user->nickname;
             }
         }
 
         $pickedMaps = $lobby->veto_state['picked_maps'] ?? ['de_mirage'];
-        $matchPassword = $lobby->server_password ?? '';
 
         return response()->json([
             "matchid" => (string)$lobby->id,
             "num_maps" => count($pickedMaps),
             "maplist" => $pickedMaps,
             "skip_veto" => true,
-            "knife_round" => true,
-            "mr" => 12,
+            "knife_round" => true, // Zapewnia rundę nożową
+            "min_players_to_ready" => ($lobby->team_size * 2), // Rozgrzewka trwa dopóki wszyscy nie wejdą
+            "min_spectators_to_ready" => 0,
             "cvars" => [
-                "sv_password" => $matchPassword
+                "sv_password" => $lobby->server_password ?? "",
+                "hostname" => "IEMSZTUM-" . $lobby->code . "@pukawka.pl", // nazwa seerwera per lobby
+                "matchzy_whitelist_enabled" => "true", // Tylko autoryzowani (po SteamID)
+                "mp_warmuptime" => "86400", // Nieskończona rozgrzewka przed wbiciem
+                "matchzy_ready_warmup_time" => "20" // 20s rozgrzewki po wejściu i !ready
             ],
             "team1" => [
                 "name" => $lobby->team_a_name ?? "Team A",
@@ -70,37 +64,51 @@ class MatchApiController extends Controller
                 "players" => $playersB,
                 "coaches" => $coachesB
             ],
-            "remote_log_url" => "{$this->ngrokUrl}/api/match/webhook"
+            "remote_log_url" => env('APP_URL') . "/api/match/webhook",
+            "demo_upload_url" => env('APP_URL') . "/api/match/demo-upload/{$lobby->id}"
         ]);
+    }
+
+    public function handleDemoUpload(Request $request, Lobby $lobby)
+    {
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = "match_{$lobby->id}_" . time() . ".dem";
+            $path = $file->storeAs("demos/lobby_{$lobby->id}", $filename, 'public');
+            
+            $links = $lobby->demo_links ?? [];
+            $links[] = asset("storage/" . $path);
+            
+            $lobby->update(['demo_links' => $links]);
+            return response()->json(['status' => 'success']);
+        }
+        return response()->json(['error' => 'No file provided'], 400);
     }
 
     public function handleWebhook(Request $request)
     {
-        Log::info("Otrzymano webhook z MatchZy:", $request->all());
-
         $data = $request->all();
         $matchId = $data['matchid'] ?? null;
-
-        if (!$matchId) {
-            return response()->json(['status' => 'ignored'], 200);
-        }
+        if (!$matchId) return response()->json(['status' => 'ignored'], 200);
 
         $lobby = Lobby::find($matchId);
-        if (!$lobby) {
-            return response()->json(['status' => 'lobby_not_found'], 404);
-        }
+        if (!$lobby) return response()->json(['status' => 'lobby_not_found'], 404);
 
         $eventType = $data['event'] ?? 'unknown';
         $liveData = $lobby->match_live_data ?? [
-            'series_score_a' => 0,
-            'series_score_b' => 0,
-            'map_history' => [],
-            'score_a' => 0,
-            'score_b' => 0,
-            'round' => 1,
-            'phase' => 'live',
-            'players' => []
+            'series_score_a' => 0, 'series_score_b' => 0, 'map_history' => [],
+            'score_a' => 0, 'score_b' => 0, 'round' => 1, 'phase' => 'ROZGRZEWKA', 'players' => []
         ];
+
+        // Fazy statusu meczu na żywo
+        switch ($eventType) {
+            case 'match_paused': $liveData['phase'] = 'PAUZA TECHNICZNA'; break;
+            case 'match_unpaused': $liveData['phase'] = 'MECZ LIVE'; break;
+            case 'knife_start': 
+            case 'knife_round': $liveData['phase'] = 'RUNDA NOŻOWA'; break;
+            case 'match_start':
+            case 'map_start': $liveData['phase'] = 'MECZ LIVE'; break;
+        }
 
         if ($eventType === 'round_end') {
             $liveData['score_a'] = $data['team1_score'] ?? $liveData['score_a'];
@@ -109,20 +117,16 @@ class MatchApiController extends Controller
         }
 
         if ($eventType === 'map_result' || $eventType === 'series_end') {
-            $mapName = $data['map'] ?? 'unknown';
-            $mapScoreA = $data['team1_score'] ?? 0;
-            $mapScoreB = $data['team2_score'] ?? 0;
-
             $liveData['map_history'][] = [
-                'map' => $mapName,
-                'score_a' => $mapScoreA,
-                'score_b' => $mapScoreB
+                'map' => $data['map'] ?? 'unknown',
+                'score_a' => $data['team1_score'] ?? 0,
+                'score_b' => $data['team2_score'] ?? 0
             ];
 
-            if ($mapScoreA > $mapScoreB) {
-                $liveData['series_score_a'] = ($liveData['series_score_a'] ?? 0) + 1;
+            if (($data['team1_score'] ?? 0) > ($data['team2_score'] ?? 0)) {
+                $liveData['series_score_a']++;
             } else {
-                $liveData['series_score_b'] = ($liveData['series_score_b'] ?? 0) + 1;
+                $liveData['series_score_b']++;
             }
         }
 
@@ -146,10 +150,21 @@ class MatchApiController extends Controller
 
         if ($eventType === 'series_end') {
             $lobby->update(['match_status' => 'finished']);
+            $liveData['phase'] = 'ZAKOŃCZONY';
+            
+            $winnerTeam = $liveData['series_score_a'] > $liveData['series_score_b'] ? 'team_a' : 'team_b';
+            
+            foreach ($lobby->players as $lobbyPlayer) {
+                $user = $lobbyPlayer->user;
+                if ($user) {
+                    $isWinner = $lobbyPlayer->team === $winnerTeam;
+                    $user->elo = max(0, $user->elo + ($isWinner ? 25 : -20));
+                    $user->save();
+                }
+            }
         }
 
         broadcast(new LobbyStateUpdated($lobby->id));
-
         return response()->json(['status' => 'success']);
     }
 }

@@ -1,7 +1,7 @@
 import { Head, usePage, router } from '@inertiajs/react';
 import { 
     Users, Settings, Play, Shield, Copy, Crown, ChevronLeft,
-    Check, RefreshCw, MessageSquare, Mic, X, Send, Edit3, CheckCircle2, Clock, Trash2, AlertCircle, Skull, Info
+    Check, RefreshCw, MessageSquare, Mic, X, Send, Edit3, CheckCircle2, Clock, Trash2, AlertCircle, Skull, Info, Star, Download
 } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
@@ -22,6 +22,8 @@ interface LobbyData {
     id: number;
     code: string;
     leader_id: number;
+    team_a_captain_id: number | null;
+    team_b_captain_id: number | null;
     status: string;
     format: string;
     team_size: number;
@@ -31,11 +33,12 @@ interface LobbyData {
     team_b_name: string;
     voice_comm: string | null;
     map_pool: string[];
+    demo_links?: string[];
     leader: {
         nickname: string;
         avatar_url: string;
     };
-    players: Player[];
+    players: any[];
     server_ip: string;
     server_password: string;
     match_status: string;
@@ -304,11 +307,17 @@ export default function Lobby() {
     const allReady = readyCount === (lobby.team_size * 2);
     const anyReady = readyCount > 0;
 
+    const handleSetCaptain = (team: 'team_a' | 'team_b', userId: number) => {
+        router.post(`/lobbies/${lobby.id}/captain`, { team, user_id: userId }, { preserveScroll: true });
+    };
+
     const PlayerCard = ({ player, side = 'neutral' }: { player: Player, side?: 'neutral' | 'blue' | 'red' }) => {
         const lvl = getLevelInfo(player.user.elo);
         const bgColors = { neutral: 'bg-[#131317]', blue: 'bg-blue-950/20', red: 'bg-red-950/20' };
         const borderColors = { neutral: 'border-zinc-800/80', blue: 'border-blue-900/50', red: 'border-red-900/50' };
         const canDrag = isLeader && !player.is_ready;
+        const isCaptain = (side === 'blue' && lobby.team_a_captain_id === player.user.id) || 
+                          (side === 'red' && lobby.team_b_captain_id === player.user.id);
 
         return (
             <div 
@@ -344,6 +353,15 @@ export default function Lobby() {
                         </div>
                     </div>
                 </div>
+                {isLeader && side !== 'neutral' && !isCaptain && (
+                    <button 
+                        onClick={() => handleSetCaptain(side === 'blue' ? 'team_a' : 'team_b', player.user.id)}
+                        className="opacity-0 group-hover:opacity-100 absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-black/80 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full transition-all border border-zinc-700"
+                        title="Zrób Kapitanem"
+                    >
+                        <Star className="w-3 h-3" />
+                    </button>
+                )}
             </div>
         );
     };
@@ -726,21 +744,19 @@ export default function Lobby() {
                                     </div>
                                         {/* BANER STATUSU MECZU */}
                                         <div className="w-full bg-[#131317] border border-zinc-800 rounded-lg p-4 mb-4 flex items-center justify-between shadow-lg">
-                                            <div className="flex items-center gap-3">
-                                                <span className={`w-3 h-3 rounded-full animate-pulse ${
-                                                    lobby.match_status === 'live' 
-                                                        ? (lobby.match_live_data?.phase === 'warmup' ? 'bg-yellow-500' : 'bg-emerald-500') 
-                                                        : 'bg-zinc-500'
-                                                }`} />
-                                                <span className="text-xs font-black uppercase tracking-wider text-white">
-                                                    Status: {
-                                                        lobby.match_status === 'configuring' ? 'Konfiguracja / Veto' :
-                                                        lobby.match_status === 'paused' ? 'Pauza techniczna' :
-                                                        lobby.match_status === 'live' ? (
-                                                            lobby.match_live_data?.phase === 'warmup' ? 'Rozgrzewka (Oczekiwanie na graczy)' : 'Mecz na żywo (LIVE)'
-                                                        ) : 'Mecz Zakończony'
-                                                    }
-                                                </span>
+                                            <div className="w-full bg-[#131317] border border-zinc-800 rounded-lg p-4 mb-4 flex items-center justify-between shadow-lg">
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`w-3 h-3 rounded-full animate-pulse ${
+                                                        lobby.match_status === 'live' ? 'bg-emerald-500' : 'bg-zinc-500'
+                                                    }`} />
+                                                    <span className="text-xs font-black uppercase tracking-wider text-white">
+                                                        Status: {
+                                                            lobby.match_status === 'configuring' ? 'Konfiguracja' :
+                                                            lobby.match_status === 'finished' ? 'Mecz Zakończony' :
+                                                            (lobby.match_live_data?.phase || 'Oczekiwanie na dołączenie')
+                                                        }
+                                                    </span>
+                                                </div>
                                             </div>
                                             {lobby.match_live_data?.phase && (
                                                 <span className="text-[10px] font-bold uppercase tracking-widest bg-zinc-900 px-3 py-1 rounded text-zinc-400 border border-zinc-800">
@@ -867,7 +883,7 @@ export default function Lobby() {
                                                             <img src={p.user.avatar_url} className="w-6 h-6 rounded object-cover" alt="" />
                                                             <span className="font-bold text-white">{p.user.nickname}</span>
                                                         </div>
-                                                        <span className="text-[10px] text-zinc-500 font-mono">ELO: {p.user.elo}</span>
+                                                        <span className="text-[10px] text-zinc-500 font-mono">SZELO: {p.user.elo}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -931,7 +947,7 @@ export default function Lobby() {
                                                         <thead>
                                                             <tr className="border-b border-zinc-800 text-zinc-500 font-bold uppercase tracking-wider">
                                                                 <th className="p-2">Gracz</th>
-                                                                <th className="p-2 text-center">Drużyna</th>
+                                                                <th className="p-2 text-center">T/CT</th>
                                                                 <th className="p-2 text-center">K</th>
                                                                 <th className="p-2 text-center">A</th>
                                                                 <th className="p-2 text-center">D</th>
@@ -941,12 +957,14 @@ export default function Lobby() {
                                                         <tbody className="divide-y divide-zinc-800/50">
                                                             {lobby.match_live_data.players.map((p: any) => (
                                                                 <tr key={p.steam_id} className="hover:bg-zinc-800/20">
-                                                                    <td className="p-2 font-bold text-white">{p.name}</td>
-                                                                    <td className="p-2 text-center font-bold uppercase text-zinc-400">{p.team}</td>
+                                                                    <td className="p-2 font-bold text-white flex items-center gap-2">
+                                                                        {p.name}
+                                                                    </td>
+                                                                    <td className={`p-2 text-center font-black uppercase ${p.team === 'CT' ? 'text-blue-400' : 'text-yellow-500'}`}>{p.team}</td>
                                                                     <td className="p-2 text-center font-black text-emerald-400">{p.kills}</td>
                                                                     <td className="p-2 text-center font-bold text-zinc-400">{p.assists}</td>
                                                                     <td className="p-2 text-center font-black text-red-400">{p.deaths}</td>
-                                                                    <td className="p-2 text-center font-bold text-yellow-500">{p.score}</td>
+                                                                    <td className="p-2 text-center font-bold text-zinc-300">{p.score}</td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>
@@ -960,6 +978,25 @@ export default function Lobby() {
                                         <div className="w-full py-4 bg-[#131317] border border-yellow-500/30 text-yellow-500 font-black text-xs uppercase tracking-[0.2em] rounded-sm flex items-center justify-center gap-3 shadow-lg">
                                             <RefreshCw className="w-4 h-4 animate-spin text-yellow-500" />
                                             Trwa konfiguracja serwera gry...
+                                        </div>
+                                    ) : lobby.match_status === 'finished' ? (
+                                        <div className="w-full py-6 px-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 rounded-sm flex flex-col items-center justify-center gap-4 shadow-lg">
+                                            <div className="text-xl font-black uppercase tracking-wider">Mecz został zakończony!</div>
+                                            <div className="text-xs text-zinc-400 font-bold tracking-widest uppercase">Punkty SZELO zostały przeliczone.</div>
+                                            
+                                            {lobby.demo_links && lobby.demo_links.length > 0 ? (
+                                                <div className="mt-4 w-full flex flex-col gap-2">
+                                                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest text-left font-bold mb-1">Dema do pobrania:</div>
+                                                    {lobby.demo_links.map((link: string, idx: number) => (
+                                                        <a key={idx} href={link} target="_blank" rel="noreferrer" className="flex items-center justify-between bg-black/40 border border-emerald-900/50 hover:bg-emerald-900/30 p-3 rounded transition-colors">
+                                                            <span className="text-white text-xs font-bold uppercase">Mapa {idx + 1} ({lobby.match_live_data?.map_history?.[idx]?.map?.replace('de_', '') || 'Nieznana'})</span>
+                                                            <Download className="w-4 h-4 text-emerald-500" />
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="mt-4 text-xs text-yellow-500 font-bold uppercase tracking-widest">Trwa kompresja dem na serwerze, odśwież za chwilę...</div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
