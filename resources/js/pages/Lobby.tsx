@@ -162,8 +162,14 @@ export default function Lobby() {
         return () => clearInterval(interval);
     }, [expiresAt]);
 
+    const isInitialMount = useRef(true);
+
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+        } else {
+            //chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
     }, [messages]);
 
     useEffect(() => {
@@ -468,7 +474,7 @@ export default function Lobby() {
                 </div>
             </nav>
 
-            <main className="max-w-[1800px] mx-auto py-8 px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <main className="max-w-[1800px] mx-auto py-8 px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
                 <div className="lg:col-span-3 flex flex-col gap-6">
                     <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-6">
@@ -527,10 +533,52 @@ export default function Lobby() {
                             )}
                         </div>
                     </div>
+
+                    <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg flex flex-col overflow-hidden h-[500px]">
+                        <div className="px-5 py-4 border-b border-zinc-800/80 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4 text-zinc-500" />
+                                <h3 className="text-xs font-bold text-white uppercase tracking-widest">Czat Poczekalni</h3>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col bg-[#0a0a0c]">
+                            {messages.map((m, i) => (
+                                <div key={i} className="flex flex-col">
+                                    <div className="flex items-baseline gap-2 mb-1">
+                                        <span className={`text-[10px] font-black uppercase ${m.isSystem ? 'text-yellow-500' : 'text-zinc-400'}`}>{m.user}</span>
+                                        <span className="text-[9px] text-zinc-600">{m.time}</span>
+                                    </div>
+                                    <div className={`text-xs p-2.5 rounded-md inline-block max-w-[90%] break-words ${m.isSystem ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 'bg-[#131317] text-zinc-300 border border-zinc-800'}`}>
+                                        {m.text}
+                                    </div>
+                                </div>
+                            ))}
+                            <div ref={chatEndRef} />
+                        </div>
+                        <div className="p-3 bg-[#0e0e11] border-t border-zinc-800/80 relative">
+                            {chatError && (
+                                <div className="absolute -top-10 left-0 w-full px-3 z-10">
+                                    <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded flex items-center gap-2 shadow-lg backdrop-blur-md">
+                                        <AlertCircle className="w-3 h-3" /> {chatError}
+                                    </div>
+                                </div>
+                            )}
+                            <form onSubmit={handleSendMsg} className="flex flex-col gap-2">
+                                <div className="flex gap-2">
+                                    <input type="text" maxLength={250} value={chatMsg} onChange={(e) => {setChatMsg(e.target.value); setChatError('');}} placeholder={isChatCooldown ? "Czekaj 3s..." : "Napisz wiadomość..."} disabled={isChatCooldown} className="flex-1 bg-[#131317] border border-zinc-800 focus:border-zinc-600 disabled:opacity-50 text-white rounded p-2.5 text-xs outline-none transition-all" />
+                                    <button type="submit" disabled={isChatCooldown || !chatMsg.trim()} className="bg-zinc-800 disabled:opacity-50 text-white p-2.5 rounded hover:bg-zinc-700 transition-colors"><Send className="w-4 h-4" /></button>
+                                </div>
+                                <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-widest text-zinc-500 px-1">
+                                    <span className={isChatCooldown ? 'text-zinc-600' : ''}>{isChatCooldown ? 'Wysyłanie...' : ''}</span>
+                                    <span>{chatMsg.length} / 250</span>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
 
                 {lobby.status === 'waiting' ? (
-                    <div className="lg:col-span-6 flex flex-col gap-6">
+                    <div className="lg:col-span-9 flex flex-col gap-6">
                         <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-6 flex flex-col min-h-[600px]">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 relative">
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl font-black text-zinc-800 italic uppercase">VS</div>
@@ -670,7 +718,7 @@ export default function Lobby() {
                                                 </div>
                                             </div>
 
-                                            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 flex-1">
+                                            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 flex-1">
                                                 {!isMyTurn && (
                                                     <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm rounded-lg flex items-center justify-center border border-zinc-800">
                                                         <div className="text-center">
@@ -714,8 +762,7 @@ export default function Lobby() {
 
                                                                 <div className="relative">
                                                                     {isBanned && <div className="absolute inset-0 bg-red-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center z-30">
-                                                                                    <Skull className="w-10 h-10 text-red-500 mb-1" />
-                                                                                    <span className="text-red-500 font-black text-lg tracking-wider uppercase bg-black/80 px-3 py-1 rounded border border-red-500/30">ODRZUCONA</span>
+                                                                                    <span className="text-red-500 font-black text-lg tracking-wider uppercase bg-black/80 px-3 py-1 rounded border border-red-500/30"><Skull className="w-10 h-10 text-red-500 mb-1" />ODRZUCONA</span>
                                                                                 </div>
                                                                     }
                                                                     {isPicked && <div className="text-yellow-500 font-black text-3xl absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 bg-black/50 px-3 py-1 rounded">WYBRANA</div>}
@@ -1024,50 +1071,6 @@ export default function Lobby() {
                         )}
                     </div>
                 )}
-
-                <div className={lobby.status === 'starting' ? `hidden` : 'lg:col-span-3 flex flex-col gap-6 h-[700px]'}>
-                    <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg flex-1 flex flex-col overflow-hidden">
-                        <div className="px-5 py-4 border-b border-zinc-800/80 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <MessageSquare className="w-4 h-4 text-zinc-500" />
-                                <h3 className="text-xs font-bold text-white uppercase tracking-widest">Czat Poczekalni</h3>
-                            </div>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col bg-[#0a0a0c]">
-                            {messages.map((m, i) => (
-                                <div key={i} className="flex flex-col">
-                                    <div className="flex items-baseline gap-2 mb-1">
-                                        <span className={`text-[10px] font-black uppercase ${m.isSystem ? 'text-yellow-500' : 'text-zinc-400'}`}>{m.user}</span>
-                                        <span className="text-[9px] text-zinc-600">{m.time}</span>
-                                    </div>
-                                    <div className={`text-xs p-2.5 rounded-md inline-block max-w-[90%] break-words ${m.isSystem ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 'bg-[#131317] text-zinc-300 border border-zinc-800'}`}>
-                                        {m.text}
-                                    </div>
-                                </div>
-                            ))}
-                            <div ref={chatEndRef} />
-                        </div>
-                        <div className="p-3 bg-[#0e0e11] border-t border-zinc-800/80 relative">
-                            {chatError && (
-                                <div className="absolute -top-10 left-0 w-full px-3 z-10">
-                                    <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded flex items-center gap-2 shadow-lg backdrop-blur-md">
-                                        <AlertCircle className="w-3 h-3" /> {chatError}
-                                    </div>
-                                </div>
-                            )}
-                            <form onSubmit={handleSendMsg} className="flex flex-col gap-2">
-                                <div className="flex gap-2">
-                                    <input type="text" maxLength={250} value={chatMsg} onChange={(e) => {setChatMsg(e.target.value); setChatError('');}} placeholder={isChatCooldown ? "Czekaj 3s..." : "Napisz wiadomość..."} disabled={isChatCooldown} className="flex-1 bg-[#131317] border border-zinc-800 focus:border-zinc-600 disabled:opacity-50 text-white rounded p-2.5 text-xs outline-none transition-all" />
-                                    <button type="submit" disabled={isChatCooldown || !chatMsg.trim()} className="bg-zinc-800 disabled:opacity-50 text-white p-2.5 rounded hover:bg-zinc-700 transition-colors"><Send className="w-4 h-4" /></button>
-                                </div>
-                                <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-widest text-zinc-500 px-1">
-                                    <span className={isChatCooldown ? 'text-zinc-600' : ''}>{isChatCooldown ? 'Wysyłanie...' : ''}</span>
-                                    <span>{chatMsg.length} / 250</span>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
             </main>
 
             <div className="fixed bottom-0 left-0 w-full bg-[#0a0a0c]/95 border-t border-zinc-800/80 backdrop-blur-xl z-40 py-4 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">

@@ -439,8 +439,8 @@ class LobbyController extends Controller
             if (!empty($lobby->server_ip)) {
                 $rcon = $this->getRconForLobby($lobby);
                 
+                $rcon->sendCommand("matchid_endmatch");
                 $rcon->sendCommand("sv_password \"iemsztum2027\"");
-                $rcon->sendCommand("kickall");
                 $rcon->sendCommand("map de_mirage"); 
             }
         } catch (\Exception $e) {
@@ -466,12 +466,18 @@ class LobbyController extends Controller
                 $rcon->sendCommand("sv_password \"\"");
             }
 
+            $rcon->sendCommand("css plugins reload MatchZy");
+
             $configUrl = env('APP_URL') . "/api/match/json-config/{$lobby->id}";
             $rcon->sendCommand("matchzy_loadmatch_url \"{$configUrl}\"");
 
-            $lobby->update(['match_status' => 'live']);
+            $lobby->update([
+                'status' => 'starting',
+                'match_status' => 'live'
+            ]);
+            
         } catch (\Exception $e) {
-            // Logowanie ewentualnych błędów z rcon
+            \Illuminate\Support\Facades\Log::error("RCON Error in startMatch: " . $e->getMessage());
         }
 
         broadcast(new LobbyStateUpdated($lobby->id));
