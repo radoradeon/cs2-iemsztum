@@ -35,7 +35,8 @@ class MatchApiController extends Controller
             }
         }
 
-        $pickedMaps = $lobby->veto_state['picked_maps'] ?? ['de_mirage'];
+        $vetoState = $lobby->veto_state ?? [];
+        $pickedMaps = (!empty($vetoState['picked_maps'])) ? $vetoState['picked_maps'] : ['de_mirage'];
 
         return response()->json([
             "matchid" => (string)$lobby->id,
@@ -47,22 +48,22 @@ class MatchApiController extends Controller
             "min_spectators_to_ready" => 0,
             "cvars" => [
                 "sv_password" => $lobby->server_password ?? "",
-                "hostname" => "IEMSZTUM-" . $lobby->code . "@pukawka.pl", // nazwa seerwera per lobby
-                "matchzy_whitelist_enabled" => "true", // Tylko autoryzowani (po SteamID)
-                "mp_warmuptime" => "86400", // Nieskończona rozgrzewka przed wbiciem
-                "matchzy_ready_warmup_time" => "20" // 20s rozgrzewki po wejściu i !ready
+                "matchzy_hostname_format" => "IEMSZTUM-" . $lobby->code . "@pukawka.pl",
+                "matchzy_whitelist_enabled" => "true",
+                "mp_warmuptime" => "86400",
+                "matchzy_ready_warmup_time" => "20"
             ],
             "team1" => [
                 "name" => $lobby->team_a_name ?? "Team A",
                 "tag" => "TA",
-                "players" => $playersA,
-                "coaches" => $coachesA
+                "players" => (object)$playersA,
+                "coaches" => (object)$coachesA
             ],
             "team2" => [
                 "name" => $lobby->team_b_name ?? "Team B",
                 "tag" => "TB",
-                "players" => $playersB,
-                "coaches" => $coachesB
+                "players" => (object)$playersB,
+                "coaches" => (object)$coachesB
             ],
             "remote_log_url" => env('APP_URL') . "/api/match/webhook",
             "demo_upload_url" => env('APP_URL') . "/api/match/demo-upload/{$lobby->id}"

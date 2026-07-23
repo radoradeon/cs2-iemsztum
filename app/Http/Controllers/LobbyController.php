@@ -359,25 +359,24 @@ class LobbyController extends Controller
                 'maps' => $state['picked_maps']
             ];
 
-            try {
-                $rcon = $this->getRconForLobby($lobby);
-                $pickedMap = $state['picked_maps'][0] ?? 'de_mirage';
-                $matchPassword = $lobby->server_password ?? '';
-
-                $rcon->sendCommand("sv_password " . ($matchPassword ? '"' . $matchPassword . '"' : '""'));
-                $rcon->sendCommand("mp_team_name_1 \"" . ($lobby->team_a_name ?? 'Team A') . "\"");
-                $rcon->sendCommand("mp_team_name_2 \"" . ($lobby->team_b_name ?? 'Team B') . "\"");
-                $rcon->sendCommand($lobby->allow_coaches ? "mp_spectators_max 2" : "mp_spectators_max 0");
-                $rcon->sendCommand("map " . $pickedMap);
-            } catch (\Exception $e) {
-                // Awaryjne pominięcie błędu socketu w dev mode
-            }
-
             $lobby->update([
                 'status' => 'starting',
                 'match_status' => 'live',
                 'veto_state' => $state
             ]);
+
+            try {
+                $rcon = $this->getRconForLobby($lobby);
+                $matchPassword = $lobby->server_password ?? '';
+
+                $rcon->sendCommand("sv_password " . ($matchPassword ? '"' . $matchPassword . '"' : '""'));
+                
+                $configUrl = env('APP_URL') . "/api/match/json-config/{$lobby->id}";
+                $rcon->sendCommand("matchzy_loadmatch_url \"{$configUrl}\"");
+
+            } catch (\Exception $e) {
+                // Awaryjne pominięcie błędu socketu
+            }
         } else {
             $state['ends_at'] = now()->addSeconds(20)->timestamp * 1000;
             $lobby->update(['veto_state' => $state]);
@@ -435,8 +434,21 @@ class LobbyController extends Controller
     public function destroy(Lobby $lobby)
     {
         if (Auth::id() !== $lobby->leader_id) return abort(403);
+
+        try {
+            if (!empty($lobby->server_ip)) {
+                $rcon = $this->getRconForLobby($lobby);
+                
+                $rcon->sendCommand("sv_password \"iemsztum2027\"");
+                $rcon->sendCommand("kickall");
+                $rcon->sendCommand("map de_mirage"); 
+            }
+        } catch (\Exception $e) {
+        }
+
         Storage::delete('chats/lobby_' . $lobby->id . '.json');
         $lobby->delete();
+        
         return redirect()->route('dashboard');
     }
 
