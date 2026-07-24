@@ -14,6 +14,7 @@ class LobbyPlayer extends Model
         'user_id',
         'team',
         'is_ready',
+        'role'
     ];
 
     protected $casts = [

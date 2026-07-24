@@ -214,6 +214,41 @@ class LobbyController extends Controller
         return back();
     }
 
+    public function toggleCoach(Request $request, Lobby $lobby)
+    {
+        if (!$lobby->allow_coaches) {
+            return back()->withErrors(['error' => 'Trenerzy nie są dozwoleni w tej poczekalni.']);
+        }
+
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $player = $lobby->players()->where('user_id', $validated['user_id'])->firstOrFail();
+
+        if ($player->team === 'unassigned') {
+            return back();
+        }
+
+        if ($player->role === 'coach') {
+            $player->update(['role' => 'player']);
+        } else {
+            $existingCoach = $lobby->players()
+                ->where('team', $player->team)
+                ->where('role', 'coach')
+                ->exists();
+
+            if ($existingCoach) {
+                return back()->withErrors(['error' => 'W tej drużynie jest już przypisany trener! Najpierw odznacz obecnego.']);
+            }
+
+            $player->update(['role' => 'coach']);
+        }
+
+        broadcast(new LobbyStateUpdated($lobby->id));
+        return back();
+    }
+
     public function toggleReady(Lobby $lobby)
     {
         $player = $lobby->players()->where('user_id', Auth::id())->firstOrFail();

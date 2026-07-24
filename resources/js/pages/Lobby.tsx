@@ -1,7 +1,7 @@
 import { Head, usePage, router } from '@inertiajs/react';
 import { 
     Users, Settings, Play, Shield, Copy, Crown, ChevronLeft,
-    Check, RefreshCw, MessageSquare, Mic, X, Send, Edit3, CheckCircle2, Clock, Trash2, AlertCircle, Skull, Info, Star, Download
+    Check, RefreshCw, MessageSquare, Mic, X, Send, Edit3, CheckCircle2, Clock, Trash2, AlertCircle, Skull, Info, Star, Download, Award
 } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
@@ -9,6 +9,7 @@ import axios from 'axios';
 interface Player {
     id: number;
     team: string;
+    role?: string;
     is_ready: boolean;
     user: {
         id: number;
@@ -106,7 +107,7 @@ const getMapImage = (mapName: string) => {
 };
 
 export default function Lobby() {
-    const { auth, lobby, expiresAt, chatHistory, vetoDevMode } = usePage<PageProps>().props;
+    const { auth, lobby, expiresAt, chatHistory, vetoDevMode, errors } = usePage<PageProps>().props;
     const isLeader = auth.user.id === lobby.leader_id;
     const currentPlayer = lobby.players.find(p => p.user.id === auth.user.id);
     
@@ -146,6 +147,15 @@ export default function Lobby() {
     const chatEndRef = useRef<HTMLDivElement>(null);
     const [draggedPlayer, setDraggedPlayer] = useState<number | null>(null);
     const [timeLeft, setTimeLeft] = useState('05:00:00');
+
+    useEffect(() => {
+        if (errors && Object.keys(errors).length > 0) {
+            const firstError = Object.values(errors)[0];
+            if (typeof firstError === 'string') {
+                showToast(firstError, 'error');
+            }
+        }
+    }, [errors]);
 
     useEffect(() => {
         const targetDate = new Date(expiresAt).getTime();
@@ -204,6 +214,10 @@ export default function Lobby() {
         setCopied(true);
         showToast('Gotowa wiadomość z zaproszeniem skopiowana do schowka!', 'success');
         setTimeout(() => setCopied(false), 2500);
+    };
+
+    const handleToggleCoach = (userId: number) => {
+        router.post(`/lobbies/${lobby.id}/coach`, { user_id: userId }, { preserveScroll: true });
     };
 
     const handleDrawTeams = () => {
@@ -351,7 +365,14 @@ export default function Lobby() {
                         </div>
                     </div>
                     <div className="ml-2">
-                        <div className="text-sm font-bold text-white tracking-wide">{player.user.nickname}</div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white tracking-wide">{player.user.nickname}</span>
+                            {player.role === 'coach' && (
+                                <span className="bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">
+                                    Trener
+                                </span>
+                            )}
+                        </div>
                         <div className="text-[9px] text-zinc-500 font-black uppercase tracking-widest flex items-center gap-1 mt-0.5">
                             {player.user.elo} <span title="SZELO - SZTUM ELO POINTS">szelo</span>
                         </div>
@@ -365,15 +386,32 @@ export default function Lobby() {
                         </div>
                     </div>
                 </div>
-                {isLeader && side !== 'neutral' && !isCaptain && (
-                    <button 
-                        onClick={() => handleSetCaptain(side === 'blue' ? 'team_a' : 'team_b', player.user.id)}
-                        className="opacity-0 group-hover:opacity-100 absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-black/80 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full transition-all border border-zinc-700"
-                        title="Zrób Kapitanem"
-                    >
-                        <Star className="w-3 h-3" />
-                    </button>
-                )}
+                <div className="flex items-center gap-1">
+                    {/* Przycisk przypisania trenera dla lidera, gdy drużyna jest wybrana a coache dozwoleni */}
+                    {isLeader && lobby.allow_coaches && side !== 'neutral' && (
+                        <button 
+                            onClick={() => handleToggleCoach(player.user.id)}
+                            className={`p-2 rounded-full transition-all border ${
+                                player.role === 'coach' 
+                                    ? 'bg-yellow-500 text-black border-yellow-400 opacity-100 shadow-[0_0_10px_rgba(234,179,8,0.5)]' 
+                                    : 'opacity-0 group-hover:opacity-100 bg-black/80 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700'
+                            }`}
+                            title={player.role === 'coach' ? 'Zdejmij funkcję trenera' : 'Oznacz jako trenera'}
+                        >
+                            <Award className="w-3 h-3" />
+                        </button>
+                    )}
+
+                    {isLeader && side !== 'neutral' && !isCaptain && (
+                        <button 
+                            onClick={() => handleSetCaptain(side === 'blue' ? 'team_a' : 'team_b', player.user.id)}
+                            className="opacity-0 group-hover:opacity-100 p-2 bg-black/80 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full transition-all border border-zinc-700"
+                            title="Zrób Kapitanem"
+                        >
+                            <Star className="w-3 h-3" />
+                        </button>
+                    )}
+                </div>
             </div>
         );
     };
