@@ -438,32 +438,6 @@ class LobbyController extends Controller
         return response()->json(['status' => 'ok']);
     }
 
-    public function destroy(Lobby $lobby)
-    {
-        if (Auth::id() !== $lobby->leader_id) return abort(403);
-
-        try {
-            if (!empty($lobby->server_ip)) {
-                $rcon = $this->getRconForLobby($lobby);
-                
-                $rcon->sendCommand("css_forceend");
-                
-                $rcon->sendCommand("kickall");
-                
-                $rcon->sendCommand("sv_password \"iemsztum2027\"");
-                
-                $rcon->sendCommand("map de_mirage"); 
-            }
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("RCON Error in destroy: " . $e->getMessage());
-        }
-
-        Storage::delete('chats/lobby_' . $lobby->id . '.json');
-        $lobby->delete();
-        
-        return redirect()->route('dashboard');
-    }
-
     public function startMatch(Request $request, Lobby $lobby)
     {
         if (Auth::id() !== $lobby->leader_id) return abort(403);
@@ -663,23 +637,113 @@ class LobbyController extends Controller
         if (Auth::id() !== $lobby->leader_id) return abort(403);
 
         try {
-            if (!empty($lobby->server_ip)) {
-                $rcon = $this->getRconForLobby($lobby);
-                
-                $rcon->sendCommand("css_forceend");
-                $rcon->sendCommand("css_endmatch");
-                
-                $rcon->sendCommand("kickall");
-                $rcon->sendCommand("sv_password \"iemsztum2027\"");
-                $rcon->sendCommand("map de_mirage"); 
-            }
+            $this->resetServerToDefaultViaFtpAndRcon($lobby);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("RCON Error in stopMatch: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("Error in stopMatch server reset: " . $e->getMessage());
         }
 
         $lobby->update(['match_status' => 'finished']);
         broadcast(new LobbyStateUpdated($lobby->id));
 
         return back();
+    }
+
+    public function destroy(Lobby $lobby)
+    {
+        if (Auth::id() !== $lobby->leader_id) return abort(403);
+
+        try {
+            $this->resetServerToDefaultViaFtpAndRcon($lobby);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Error in destroy server reset: " . $e->getMessage());
+        }
+
+        Storage::delete('chats/lobby_' . $lobby->id . '.json');
+        $lobby->delete();
+        
+        return redirect()->route('dashboard');
+    }
+
+    /**
+     * Resetuje konfigurację serwera na FTP i przez RCON do domyślnych danych opartych o ID serwera.
+     */
+    private function resetServerToDefaultViaFtpAndRcon(Lobby $lobby)
+    {
+        if (empty($lobby->server_ip)) return;
+
+        $parts = explode(':', $lobby->server_ip);
+        $ip = $parts[0];
+        $port = $parts[1] ?? 27015;
+        $server = Server::where('ip', $ip)->where('port', $port)->first();
+
+        if (!$server) return;
+
+        $defaultHostname = "IEMsztum{$server->id}@pukawka.pl";
+        $defaultPassword = "iemsztum{$server->id}2027";
+
+        if (!empty($server->ftp_host)) {
+            // \Log::info("FTP: Przywracanie domyślnej konfiguracji dla serwera ID {$server->id} (Nazwa: {$defaultHostname})");
+            $this->updateServerCfgCustomViaFtp($server, $defaultHostname, $defaultPassword);
+        }
+
+        // 2. Komendy RCON natychmiastowo aplikujące stan resetu
+        $rcon = $this->getRconForLobby($lobby);
+        $rcon->sendCommand("css_forceend");
+        $rcon->sendCommand("css_endmatch");
+        $rcon->sendCommand("kickall");
+        $rcon->sendCommand("sv_password \"{$defaultPassword}\"");
+        $rcon->sendCommand("exec server.cfg");
+        $rcon->sendCommand("map de_mirage");
+    }
+
+    /**
+     * Pomocnicza metoda FTP do ustawiania niestandardowego hostname i hasła
+     */
+    private function updateServerCfgCustomViaFtp($server, $hostname, $password)
+    {
+        $conn = @ftp_connect($server->ftp_host, $server->ftp_port ?? 21, 15);
+        if (!$conn) {
+            throw new \Exception("Nie można połączyć się z FTP: {$server->ftp_host}");
+        }
+
+        $login = @ftp_login($conn, $server->ftp_user, $server->ftp_password);
+        if (!$login) {
+            ftp_close($conn);
+            throw new \Exception("Błąd logowania FTP dla użytkownika: {$server->ftp_user}");
+        }
+
+        ftp_pasv($conn, true);
+
+        $remotePath = 'csgo/cfg/server.cfg';
+        $tempFile = tempnam(sys_get_temp_dir(), 'cfg');
+
+        $downloaded = @ftp_get($conn, $tempFile, $remotePath, FTP_ASCII);
+        $content = '';
+        if ($downloaded && file_exists($tempFile)) {
+            $content = file_get_contents($tempFile);
+        }
+
+        if (preg_match('/^(\s*hostname\s+)/mi', $content)) {
+            $content = preg_replace('/^(\s*hostname\s+).*/mi', '$1 "' . $hostname . '"', $content);
+        } else {
+            $content .= "\nhostname \"" . $hostname . "\"\n";
+        }
+
+        if (preg_match('/^(\s*sv_password\s+)/mi', $content)) {
+            $content = preg_replace('/^(\s*sv_password\s+).*/mi', '$1 "' . $password . '"', $content);
+        } else {
+            $content .= "sv_password \"" . $password . "\"\n";
+        }
+
+        file_put_contents($tempFile, $content);
+
+        $uploaded = @ftp_put($conn, $remotePath, $tempFile, FTP_ASCII);
+
+        @unlink($tempFile);
+        ftp_close($conn);
+
+        if (!$uploaded) {
+            throw new \Exception("Nie udało się przesłać pliku server.cfg przez FTP.");
+        }
     }
 }
