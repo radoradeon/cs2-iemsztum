@@ -751,7 +751,7 @@ export default function Lobby() {
                                                 <div className="z-10 relative w-full md:w-auto text-center md:text-left mb-6 md:mb-0">
                                                     <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
                                                         <span className="bg-yellow-500 text-black font-black px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] rounded-sm shadow-[0_0_15px_rgba(234,179,8,0.4)] animate-pulse flex items-center gap-2">
-                                                            <div className="w-1.5 h-1.5 bg-black rounded-full animate-ping"></div> Live Veto
+                                                            <div className="w-1.5 h-1.5 bg-black rounded-full animate-ping"></div> TRWA GŁOSOWANIE
                                                         </span>
                                                         <span className="text-zinc-400 font-bold text-xs uppercase tracking-widest bg-zinc-800 px-3 py-1.5 rounded-sm border border-zinc-700">Faza {state.current_step_index + 1} / {state.steps.length}</span>
                                                     </div>
@@ -763,17 +763,45 @@ export default function Lobby() {
                                                     </h2>
                                                 </div>
                                                 
-                                                <div className="text-center md:text-right z-10 relative flex flex-col items-center md:items-end bg-black/40 px-8 py-4 rounded-lg border border-zinc-800/80">
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
-                                                        <Clock className="w-4 h-4 text-zinc-400" /> POZOSTAŁY CZAS
+                                                <div className="text-center z-10 relative flex flex-col items-center bg-black/40 px-6 py-4 rounded-xl border border-zinc-800/80 shadow-lg">
+    
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] mb-3 flex items-center gap-2">
+                                                        <Clock className="w-3.5 h-3.5 text-zinc-400" /> POZOSTAŁY CZAS
                                                     </div>
-                                                    <div className={`text-6xl md:text-7xl font-black tracking-tighter transition-all duration-300 ${vetoTimeLeft <= 5 ? 'text-red-500 drop-shadow-[0_0_25px_rgba(239,68,68,0.8)] scale-110' : 'text-white drop-shadow-lg'}`}>
-                                                        0:{vetoTimeLeft.toString().padStart(2, '0')}
-                                                    </div>
+
+                                                    {(() => {
+                                                        const minutes = Math.floor(vetoTimeLeft / 60).toString().padStart(2, '0');
+                                                        const seconds = (vetoTimeLeft % 60).toString().padStart(2, '0');
+                                                        const digits = `${minutes}${seconds}`.split('');
+
+                                                        return (
+                                                            <div className="flex items-center gap-1.5 mb-4">
+                                                                <div className="flex gap-1">
+                                                                    <div className={`w-9 h-12 md:w-10 md:h-13 bg-[#131317] border rounded-lg flex items-center justify-center text-xl md:text-2xl font-black font-mono transition-all duration-300 ${vetoTimeLeft <= 5 ? 'border-red-500/80 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] scale-105' : 'border-zinc-800 text-white'}`}>
+                                                                        {digits[0]}
+                                                                    </div>
+                                                                    <div className={`w-9 h-12 md:w-10 md:h-13 bg-[#131317] border rounded-lg flex items-center justify-center text-xl md:text-2xl font-black font-mono transition-all duration-300 ${vetoTimeLeft <= 5 ? 'border-red-500/80 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] scale-105' : 'border-zinc-800 text-white'}`}>
+                                                                        {digits[1]}
+                                                                    </div>
+                                                                </div>
+
+                                                                <span className={`text-xl font-black mx-0.5 ${vetoTimeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-zinc-600'}`}>:</span>
+
+                                                                <div className="flex gap-1">
+                                                                    <div className={`w-9 h-12 md:w-10 md:h-13 bg-[#131317] border rounded-lg flex items-center justify-center text-xl md:text-2xl font-black font-mono transition-all duration-300 ${vetoTimeLeft <= 5 ? 'border-red-500/80 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] scale-105' : 'border-zinc-800 text-white'}`}>
+                                                                        {digits[2]}
+                                                                    </div>
+                                                                    <div className={`w-9 h-12 md:w-10 md:h-13 bg-[#131317] border rounded-lg flex items-center justify-center text-xl md:text-2xl font-black font-mono transition-all duration-300 ${vetoTimeLeft <= 5 ? 'border-red-500/80 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] scale-105' : 'border-zinc-800 text-white'}`}>
+                                                                        {digits[3]}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                     
-                                                    <div className="w-full h-1 bg-zinc-800 mt-4 rounded-full overflow-hidden">
+                                                    <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
                                                         <div 
-                                                            className={`h-full transition-all duration-1000 ease-linear ${vetoTimeLeft <= 5 ? 'bg-red-500' : 'bg-yellow-500'}`}
+                                                            className={`h-full transition-all duration-1000 ease-linear ${vetoTimeLeft <= 5 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'bg-yellow-500'}`}
                                                             style={{ width: `${(vetoTimeLeft / 20) * 100}%` }}
                                                         ></div>
                                                     </div>
@@ -1201,8 +1229,30 @@ export default function Lobby() {
                     
                     <div className="flex items-center gap-4">
                         {lobby.status === 'waiting' && currentPlayer && currentPlayer.team !== 'unassigned' && (
-                            <button onClick={handleToggleReady} className={`px-10 py-4 font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 transform skew-x-[-10deg] rounded-sm ${currentPlayer.is_ready ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'}`}>
-                                <span className="block transform skew-x-[10deg] flex items-center gap-2"><Check className="w-5 h-5" /> {currentPlayer.is_ready ? 'JESTEŚ GOTOWY' : 'POTWIERDŹ GOTOWOŚĆ'}</span>
+                            <button 
+                                onClick={handleToggleReady} 
+                                className={`px-10 py-4 font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 transform skew-x-[-10deg] rounded-sm group ${
+                                    currentPlayer.is_ready 
+                                        ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-red-600 hover:text-white hover:border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.3)]' 
+                                        : 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                }`}
+                            >
+                                <span className="block transform skew-x-[10deg] flex items-center justify-center">
+                                    {currentPlayer.is_ready ? (
+                                        <>
+                                            <span className="flex items-center gap-2 group-hover:hidden">
+                                                <Check className="w-5 h-5" /> JESTEŚ GOTOWY
+                                            </span>
+                                            <span className="hidden items-center gap-2 group-hover:flex">
+                                                <X className="w-5 h-5" /> COFNIJ GOTOWOŚĆ
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span className="flex items-center gap-2">
+                                            <Check className="w-5 h-5" /> POTWIERDŹ GOTOWOŚĆ
+                                        </span>
+                                    )}
+                                </span>
                             </button>
                         )}
                         
