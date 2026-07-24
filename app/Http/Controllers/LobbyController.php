@@ -379,16 +379,10 @@ class LobbyController extends Controller
             ]);
 
             try {
-                $rcon = $this->getRconForLobby($lobby);
-                $matchPassword = $lobby->server_password ?? '';
-
-                $rcon->sendCommand("sv_password " . ($matchPassword ? '"' . $matchPassword . '"' : '""'));
-                
-                $configUrl = env('APP_URL') . "/api/match/json-config/{$lobby->id}";
-                $rcon->sendCommand("matchzy_loadmatch_url \"{$configUrl}\"");
+                $this->setupAndStartMatchOnServer($lobby);
 
             } catch (\Exception $e) {
-                // Awaryjne pominięcie błędu socketu
+                \Illuminate\Support\Facades\Log::error("Error in vetoFinalize match start: " . $e->getMessage());
             }
         } else {
             $state['ends_at'] = now()->addSeconds(20)->timestamp * 1000;
@@ -475,32 +469,7 @@ class LobbyController extends Controller
         if (Auth::id() !== $lobby->leader_id) return abort(403);
 
         try {
-            $rcon = $this->getRconForLobby($lobby);
-            $matchPassword = $lobby->server_password ?? '';
-
-            $parts = explode(':', $lobby->server_ip);
-            $ip = $parts[0];
-            $port = $parts[1] ?? 27015;
-            $server = Server::where('ip', $ip)->where('port', $port)->first();
-
-            if ($server && !empty($server->ftp_host)) {
-                $this->updateServerCfgViaFtp($server, $lobby->code, $matchPassword);
-            }
-            // ---------------------------------------------
-
-            if (!empty($matchPassword)) {
-                $rcon->sendCommand("sv_password \"{$matchPassword}\"");
-            } else {
-                $rcon->sendCommand("sv_password \"\"");
-            }
-
-            $rcon->sendCommand("css_forceend");
-            $rcon->sendCommand("css_endmatch");
-
-            $configUrl = env('APP_URL') . "/api/match/json-config/{$lobby->id}";
-            $rcon->sendCommand("matchzy_loadmatch_url \"{$configUrl}\"");
-
-            $rcon->sendCommand("exec server.cfg");
+            $this->setupAndStartMatchOnServer($lobby);
 
             $lobby->update([
                 'status' => 'starting',
@@ -518,8 +487,45 @@ class LobbyController extends Controller
     /**
      * Prywatna metoda pomocnicza do edycji server.cfg przez FTP
      */
+
+    private function setupAndStartMatchOnServer(Lobby $lobby)
+    {
+        $matchPassword = $lobby->server_password ?? '';
+
+        $parts = explode(':', $lobby->server_ip);
+        $ip = $parts[0];
+        $port = $parts[1] ?? 27015;
+        $server = Server::where('ip', $ip)->where('port', $port)->first();
+
+        if ($server && !empty($server->ftp_host)) {
+            \Log::info("FTP: Rozpoczynanie aktualizacji server.cfg dla lobby {$lobby->code}...");
+            $this->updateServerCfgViaFtp($server, $lobby->code, $matchPassword);
+        } else {
+            \Log::warning("FTP: Brak skonfigurowanego hosta FTP dla serwera w lobby {$lobby->code}");
+        }
+
+        $rcon = $this->getRconForLobby($lobby);
+
+        if (!empty($matchPassword)) {
+            $rcon->sendCommand("sv_password \"{$matchPassword}\"");
+        } else {
+            $rcon->sendCommand("sv_password \"\"");
+        }
+
+        $rcon->sendCommand("css_forceend");
+        $rcon->sendCommand("css_endmatch");
+
+        $configUrl = env('APP_URL') . "/api/match/json-config/{$lobby->id}";
+        $rcon->sendCommand("matchzy_loadmatch_url \"{$configUrl}\"");
+
+        $rcon->sendCommand("exec server.cfg");
+        \Log::info("RCON: Wysłano komendy startowe dla lobby {$lobby->code}");
+    }
+
     private function updateServerCfgViaFtp($server, $lobbyCode, $matchPassword)
     {
+        \Log::info("FTP: Rozpoczynanie połączenia z {$server->ftp_host}:{id={$server->id}}");
+
         $conn = @ftp_connect($server->ftp_host, $server->ftp_port ?? 21, 15);
         if (!$conn) {
             throw new \Exception("Nie można połączyć się z FTP: {$server->ftp_host}");
@@ -532,12 +538,14 @@ class LobbyController extends Controller
         }
 
         ftp_pasv($conn, true);
+        \Log::info("FTP: Zalogowano pomyślnie. Aktualny folder FTP: " . ftp_pwd($conn));
 
         $remotePath = 'csgo/cfg/server.cfg';
         $tempFile = tempnam(sys_get_temp_dir(), 'cfg');
 
         $downloaded = @ftp_get($conn, $tempFile, $remotePath, FTP_ASCII);
-        
+        \Log::info("FTP: Próba pobrania server.cfg -> " . ($downloaded ? 'Sukces' : 'Plik nie istnieje lub pominięto'));
+
         $content = '';
         if ($downloaded && file_exists($tempFile)) {
             $content = file_get_contents($tempFile);
@@ -559,14 +567,20 @@ class LobbyController extends Controller
 
         file_put_contents($tempFile, $content);
 
+        \Log::info("FTP: Wysyłanie zaktualizowanego pliku server.cfg na serwer...");
+        
         $uploaded = @ftp_put($conn, $remotePath, $tempFile, FTP_ASCII);
+        
+        \Log::info("FTP: Wynik wysyłania ftp_put -> " . ($uploaded ? 'SUKCES' : 'BŁĄD'));
 
         @unlink($tempFile);
         ftp_close($conn);
 
         if (!$uploaded) {
-            throw new \Exception("Nie udało się przesłać zmodyfikowanego pliku server.cfg przez FTP.");
+            throw new \Exception("Nie udało się przesłać pliku server.cfg przez FTP.");
         }
+        
+        \Log::info("FTP: Operacja zakończona pełnym sukcesem dla lobby {$lobbyCode}");
     }
 
     public function leaderAction(Request $request, Lobby $lobby)
