@@ -163,7 +163,32 @@ class MatchApiController extends Controller
         $lobby->update(['match_live_data' => $liveData]);
 
         if ($eventType === 'series_end') {
-            $lobby->update(['match_status' => 'finished']);
+            if (!empty($lobby->server_ip)) {
+                $parts = explode(':', $lobby->server_ip);
+                $ip = $parts[0];
+                $port = $parts[1] ?? 27015;
+                $server = \App\Models\Server::where('ip', $ip)->where('port', $port)->first();
+
+                if ($server) {
+                    try {
+                        $rconString = $server->ip . ':' . $server->port . ':' . $server->rcon_password;
+                        $rcon = new \App\Services\RconService($rconString);
+                        $rcon->sendCommand("kickall");
+                        $defaultPassword = "iemsztum{$server->id}2027";
+                        $rcon->sendCommand("sv_password \"{$defaultPassword}\"");
+                        $rcon->sendCommand("map de_mirage");
+                    } catch (\Exception $e) {
+                        \Log::error("Błąd wyrzucania graczy po automatycznym końcu meczu: " . $e->getMessage());
+                    }
+                }
+            }
+
+            $lobby->update([
+                'match_status' => 'finished',
+                'server_ip' => null,
+                'server_password' => null
+            ]);
+            
             $liveData['phase'] = 'ZAKOŃCZONY';
             
             $winnerTeam = $liveData['series_score_a'] > $liveData['series_score_b'] ? 'team_a' : 'team_b';

@@ -674,10 +674,15 @@ class LobbyController extends Controller
         try {
             $this->resetServerToDefaultViaFtpAndRcon($lobby);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Error in stopMatch server reset: " . $e->getMessage());
+            \Log::error("Error in stopMatch server reset: " . $e->getMessage());
         }
 
-        $lobby->update(['match_status' => 'finished']);
+        $lobby->update([
+            'match_status' => 'finished',
+            'server_ip' => null,
+            'server_password' => null
+        ]);
+
         broadcast(new LobbyStateUpdated($lobby->id));
 
         return back();
