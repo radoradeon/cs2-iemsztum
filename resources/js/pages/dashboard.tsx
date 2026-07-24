@@ -110,7 +110,10 @@ export default function Dashboard() {
                                 <span className="block transform skew-x-[10deg]">Historia Meczów</span>
                             </Link>
                             <Link href="/statistics" className="px-5 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:text-white transition-colors transform skew-x-[-10deg]">
-                                <span className="block transform skew-x-[10deg]">Statystyki</span>
+                                <span className="block transform skew-x-[10deg]">RANKING</span>
+                            </Link>
+                            <Link href="/matches/live" className="px-5 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:text-white transition-colors transform skew-x-[-10deg]">
+                                <span className="block transform skew-x-[10deg]">Trwające rozgrywki</span>
                             </Link>
                             {user.role === 'admin' && (
                                 <Link href="/admin/dashboard" className="px-5 py-2 text-xs font-bold text-red-400 uppercase tracking-wider hover:text-red-300 transition-colors transform skew-x-[-10deg] ml-4 border border-red-900/50 bg-red-900/10">
