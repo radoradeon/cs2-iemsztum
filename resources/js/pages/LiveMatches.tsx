@@ -1,6 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ChevronLeft, Calendar, Swords, ChevronRight, ChevronDown, Tv, Check, Users, MapPin, Play } from 'lucide-react';
-import React, { useState } from 'react';
+import { ChevronLeft, Calendar, Swords, ChevronRight, ChevronDown, Tv, Check, Users, MapPin, Play, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import CookieConsent from '../components/CookieConsent';
 
 const getMapImage = (mapName: string) => {
@@ -21,6 +21,27 @@ export default function LiveMatches() {
     const { matches, totalCount, currentLimit } = usePage<{ matches: any[], totalCount: number, currentLimit: number }>().props;
     const [loadingMore, setLoadingMore] = useState(false);
     const [copiedId, setCopiedId] = useState<number | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(25);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    setIsRefreshing(true);
+                    router.reload({
+                        onFinish: () => {
+                            setIsRefreshing(false);
+                        },
+                    });
+                    return 25;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, []);
 
     const loadMore = () => {
         const nextLimit = currentLimit + 25;
@@ -56,6 +77,11 @@ export default function LiveMatches() {
                                 IEM <span className="text-yellow-500">SZTUM</span>
                             </div>
                         </Link>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest bg-zinc-900/80 border border-zinc-800 px-3 py-1.5 rounded-lg">
+                        <RefreshCw className={`w-3 h-3 text-yellow-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        <span>Auto-odświeżanie za <span className="text-white font-black">{timeLeft}s</span></span>
                     </div>
                 </div>
             </nav>

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('lobbies', function (Blueprint $table) {
-            $table->boolean('gotv_enabled')->default(true)->after('map');
+            $table->boolean('gotv_enabled')->default(true);
         });
     }
 
