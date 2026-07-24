@@ -3,18 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Models\MatchHistory;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class MatchHistoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $matches = MatchHistory::whereHas('players', function ($query) {
-            $query->where('user_id', auth()->id());
-        })->latest()->paginate(15);
-        
+        $limit = min((int) $request->get('limit', 25), 500);
+
+        $query = MatchHistory::whereHas('players', function ($q) {
+                $q->where('user_id', auth()->id());
+            })
+            ->latest();
+
+        $totalCount = (clone $query)->count();
+        $matches = $query->take($limit)->get();
+
         return Inertia::render('History/Index', [
-            'matches' => $matches
+            'matches' => $matches,
+            'totalCount' => $totalCount,
+            'currentLimit' => $limit
         ]);
     }
 
