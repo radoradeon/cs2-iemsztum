@@ -48,6 +48,9 @@ class MatchApiController extends Controller
             "min_spectators_to_ready" => 0,
             "cvars" => [
                 "sv_password" => $lobby->server_password ?? "",
+                'tv_enable' => $lobby->gotv_enabled ? 1 : 0,
+                'tv_delay' => 90,
+                'tv_password' => "iemsztum" . $lobby->id,
                 "matchzy_hostname_format" => "IEMSZTUM-" . $lobby->code . "@pukawka.pl",
                 "matchzy_whitelist_enabled" => "true",
                 "mp_warmuptime" => "86400",

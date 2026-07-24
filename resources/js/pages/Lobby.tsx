@@ -42,6 +42,7 @@ interface LobbyData {
     };
     players: any[];
     server_ip: string;
+    gotv_enabled: boolean;
     server_password: string;
     match_status: string;
     match_live_data?: {
@@ -140,7 +141,8 @@ export default function Lobby() {
         team_size: lobby.team_size,
         team_assignment: lobby.team_assignment,
         allow_coaches: lobby.allow_coaches,
-        server_password: lobby.server_password || ''
+        server_password: lobby.server_password || '',
+        gotv_enabled: lobby.gotv_enabled,
     });
 
     const [isEditingTeamA, setIsEditingTeamA] = useState(false);
@@ -537,6 +539,17 @@ export default function Lobby() {
                                 </select>
                             </div>
                             <div>
+                                <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2 block">Zezwól na GOTV</label>
+                                <select 
+                                    className="w-full bg-[#131317] border border-zinc-800 text-white rounded p-3 text-sm font-bold uppercase outline-none focus:border-yellow-500" 
+                                    value={settingsForm.gotv_enabled ? 'true' : 'false'} 
+                                    onChange={e => setSettingsForm({...settingsForm, gotv_enabled: e.target.value === 'true'})}
+                                >
+                                    <option value="false">BRAK ZEZWOLENIA</option>
+                                    <option value="true">DOZWOLONE</option>
+                                </select>
+                            </div>
+                            <div>
                                 <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2 block">Hasło Serwera CS2 (Max 8 znaków, bez specjalnych)</label>
                                 <input 
                                     type="text" 
@@ -618,6 +631,12 @@ export default function Lobby() {
                             <div className="bg-[#131317] border border-zinc-800/50 p-3 rounded-sm flex justify-between items-center">
                                 <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Przypisany serwer</span>
                                 <span className="text-sm font-black text-white uppercase">{lobby.server_ip}</span>
+                            </div>
+                            <div className="bg-[#131317] border border-zinc-800/50 p-3 rounded-sm flex justify-between items-center">
+                                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">ZEZWÓL NA GOTV</span>
+                                <span className="text-sm font-black text-white uppercase">
+                                    {lobby.gotv_enabled ? 'DOZWOLONE' : 'BRAK ZEZWOLENIA'}
+                                </span>
                             </div>
                             <div className="bg-[#131317] border border-zinc-800/50 p-3 rounded-sm flex justify-between items-center">
                                 <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Hasło</span>

@@ -128,6 +128,7 @@ class LobbyController extends Controller
             'team_a_name' => 'nullable|string|max:30',
             'team_b_name' => 'nullable|string|max:30',
             'voice_comm' => 'nullable|string|max:255',
+            'gotv_enabled' => 'required|boolean',
             'server_password' => 'nullable|string|max:8|regex:/^[a-zA-Z0-9]+$/',
         ]);
 

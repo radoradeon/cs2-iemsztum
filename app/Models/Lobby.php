@@ -30,7 +30,8 @@ class Lobby extends Model
         'score_a',
         'score_b',
         'match_live_data',
-        'demo_links'
+        'demo_links',
+        'gotv_enabled'
     ];
 
     protected $casts = [
@@ -38,7 +39,8 @@ class Lobby extends Model
         'map_pool' => 'array',
         'veto_state' => 'array',
         'match_live_data' => 'array',
-        'demo_links' => 'array'
+        'demo_links' => 'array',
+        'gotv_enabled' => 'boolean'
     ];
 
     public function leader()
