@@ -34,8 +34,8 @@ export default function LiveMatches() {
         });
     };
 
-    const copyGotvCommand = (id: number, ip: string, port: number) => {
-        const command = `connect ${ip}:${port}`;
+    const copyGotvCommand = (id: number, ip: string, port: number, password: string) => {
+        const command = `password ${password}; connect ${ip}:${port}`;
         navigator.clipboard.writeText(command);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
@@ -124,7 +124,7 @@ export default function LiveMatches() {
                                         <div className="relative z-10 w-full md:w-1/4 flex justify-end p-6 mt-4 md:mt-0">
                                             {match.gotv_enabled ? (
                                                 <button
-                                                    onClick={() => copyGotvCommand(match.id, match.gotv_ip, match.gotv_port)}
+                                                    onClick={() => copyGotvCommand(match.id, match.gotv_ip, match.gotv_port, match.gotv_password)}
                                                     className="bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3 px-5 rounded-xl text-[10px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)] flex items-center gap-2"
                                                 >
                                                     {copiedId === match.id ? (

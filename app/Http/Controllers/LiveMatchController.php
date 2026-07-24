@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lobby;
+use App\Models\Server;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -12,7 +13,9 @@ class LiveMatchController extends Controller
     {
         $limit = $request->input('limit', 25);
 
-        $query = Lobby::where('status', 'live')->latest();
+        $query = Lobby::whereIn('status', ['starting', 'live'])
+              ->whereNotNull('server_ip')
+              ->latest();
 
         $totalCount = $query->count();
         $matches = $query->take($limit)->get();
@@ -20,6 +23,13 @@ class LiveMatchController extends Controller
         $formattedMatches = $matches->map(function ($lobby) {
             $liveData = $lobby->match_live_data ?? [];
             
+            $parts = explode(':', $lobby->server_ip);
+            $ip = $parts[0] ?? '127.0.0.1';
+            $port = (int)($parts[1] ?? 27015);
+
+            $server = Server::where('ip', $ip)->where('port', $port)->first();
+            $serverId = $server ? $server->id : $lobby->id;
+
             return [
                 'id' => $lobby->id,
                 'code' => $lobby->code,
@@ -33,8 +43,9 @@ class LiveMatchController extends Controller
                 'score_b' => $liveData['score_b'] ?? 0,
                 'players_count' => count($liveData['players'] ?? $lobby->players),
                 'gotv_enabled' => (bool)$lobby->gotv_enabled,
-                'gotv_ip' => $lobby->server_ip ? explode(':', $lobby->server_ip)[0] : '127.0.0.1',
-                'gotv_port' => $lobby->server_ip ? (int)(explode(':', $lobby->server_ip)[1] ?? 27015) + 5 : 27020, 
+                'gotv_ip' => $ip,
+                'gotv_port' => $port + 5,
+                'gotv_password' => "iemsztum" . $serverId,
                 'created_at' => $lobby->created_at,
             ];
         });
