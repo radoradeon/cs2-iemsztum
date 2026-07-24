@@ -3,6 +3,8 @@ import { ChevronLeft, Trophy, Calendar, Download, Map as MapIcon, Crosshair, Cro
 import React, { useState } from 'react';
 
 const getMapImage = (mapName: string) => {
+    if (!mapName) return '';
+    
     const mapLower = mapName.toLowerCase();
     const name = mapLower.replace('de_', '').replace('am_', '');
     const standardMaps = ['mirage', 'dust2', 'inferno', 'nuke', 'ancient', 'anubis', 'vertigo', 'overpass'];
@@ -10,7 +12,8 @@ const getMapImage = (mapName: string) => {
     if (standardMaps.includes(name)) {
         return `https://raw.githubusercontent.com/MurkyYT/cs2-map-icons/main/images/thumbs/de_${name}_1_png.png`;
     }
-    return `https://image.gametracker.com/images/maps/160x120/csgo/${mapLower}.jpg`;
+    
+    return `/images/maps/${mapLower}.png`;
 };
 
 export default function HistoryShow() {
