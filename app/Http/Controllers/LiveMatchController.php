@@ -45,7 +45,8 @@ class LiveMatchController extends Controller
                 'gotv_enabled' => (bool)$lobby->gotv_enabled,
                 'gotv_ip' => $ip,
                 'gotv_port' => $port + 5,
-                'gotv_password' => "iemsztum" . $serverId,
+                'gotv_password' => "iemsztum" . $lobby->id,
+                // 'gotv_password' => "iemsztum" . $serverId,
                 'created_at' => $lobby->created_at,
             ];
         });
