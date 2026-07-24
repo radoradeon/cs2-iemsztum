@@ -198,9 +198,11 @@ export default function Lobby() {
     }, [lobby.id]);
 
     const copyCode = () => {
-        navigator.clipboard.writeText(lobby.code);
+        const message = `Hej, dołącz do poczekalni żeby zagrać w IEM SZTUM! Unikalny kod poczekalni, który będzie CI potrzebny w celu dołączenia to: ${lobby.code}`;
+        
+        navigator.clipboard.writeText(message);
         setCopied(true);
-        showToast('Kod poczekalni został skopiowany!', 'success');
+        showToast('Gotowa wiadomość z zaproszeniem skopiowana do schowka!', 'success');
         setTimeout(() => setCopied(false), 2500);
     };
 
