@@ -498,7 +498,7 @@ class LobbyController extends Controller
         $server = Server::where('ip', $ip)->where('port', $port)->first();
 
         if ($server && !empty($server->ftp_host)) {
-            \Log::info("FTP: Rozpoczynanie aktualizacji server.cfg dla lobby {$lobby->code}...");
+            // \Log::info("FTP: Rozpoczynanie aktualizacji server.cfg dla lobby {$lobby->code}...");
             $this->updateServerCfgViaFtp($server, $lobby->code, $matchPassword);
         } else {
             \Log::warning("FTP: Brak skonfigurowanego hosta FTP dla serwera w lobby {$lobby->code}");
@@ -519,12 +519,12 @@ class LobbyController extends Controller
         $rcon->sendCommand("matchzy_loadmatch_url \"{$configUrl}\"");
 
         $rcon->sendCommand("exec server.cfg");
-        \Log::info("RCON: Wysłano komendy startowe dla lobby {$lobby->code}");
+        // \Log::info("RCON: Wysłano komendy startowe dla lobby {$lobby->code}");
     }
 
     private function updateServerCfgViaFtp($server, $lobbyCode, $matchPassword)
     {
-        \Log::info("FTP: Rozpoczynanie połączenia z {$server->ftp_host}:{id={$server->id}}");
+        // \Log::info("FTP: Rozpoczynanie połączenia z {$server->ftp_host}:{id={$server->id}}");
 
         $conn = @ftp_connect($server->ftp_host, $server->ftp_port ?? 21, 15);
         if (!$conn) {
@@ -538,13 +538,13 @@ class LobbyController extends Controller
         }
 
         ftp_pasv($conn, true);
-        \Log::info("FTP: Zalogowano pomyślnie. Aktualny folder FTP: " . ftp_pwd($conn));
+        // \Log::info("FTP: Zalogowano pomyślnie. Aktualny folder FTP: " . ftp_pwd($conn));
 
         $remotePath = 'csgo/cfg/server.cfg';
         $tempFile = tempnam(sys_get_temp_dir(), 'cfg');
 
         $downloaded = @ftp_get($conn, $tempFile, $remotePath, FTP_ASCII);
-        \Log::info("FTP: Próba pobrania server.cfg -> " . ($downloaded ? 'Sukces' : 'Plik nie istnieje lub pominięto'));
+        // \Log::info("FTP: Próba pobrania server.cfg -> " . ($downloaded ? 'Sukces' : 'Plik nie istnieje lub pominięto'));
 
         $content = '';
         if ($downloaded && file_exists($tempFile)) {
@@ -567,11 +567,11 @@ class LobbyController extends Controller
 
         file_put_contents($tempFile, $content);
 
-        \Log::info("FTP: Wysyłanie zaktualizowanego pliku server.cfg na serwer...");
+        // \Log::info("FTP: Wysyłanie zaktualizowanego pliku server.cfg na serwer...");
         
         $uploaded = @ftp_put($conn, $remotePath, $tempFile, FTP_ASCII);
         
-        \Log::info("FTP: Wynik wysyłania ftp_put -> " . ($uploaded ? 'SUKCES' : 'BŁĄD'));
+        // \Log::info("FTP: Wynik wysyłania ftp_put -> " . ($uploaded ? 'SUKCES' : 'BŁĄD'));
 
         @unlink($tempFile);
         ftp_close($conn);
@@ -580,7 +580,7 @@ class LobbyController extends Controller
             throw new \Exception("Nie udało się przesłać pliku server.cfg przez FTP.");
         }
         
-        \Log::info("FTP: Operacja zakończona pełnym sukcesem dla lobby {$lobbyCode}");
+        // \Log::info("FTP: Operacja zakończona pełnym sukcesem dla lobby {$lobbyCode}");
     }
 
     public function leaderAction(Request $request, Lobby $lobby)
