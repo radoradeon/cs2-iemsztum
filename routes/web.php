@@ -11,6 +11,7 @@ use App\Http\Controllers\LobbyController;
 use App\Http\Controllers\MatchHistoryController;
 use App\Http\Controllers\AdminController;
 use App\Http\Middleware\AdminPanelUnlocked;
+use App\Http\Controllers\StatisticsController;
 
 // Welcome
 
@@ -74,6 +75,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/history', [MatchHistoryController::class, 'index'])->name('history.index');
     Route::get('/history/{id}', [MatchHistoryController::class, 'show'])->name('history.show');
+
+    Route::get('/statistics', [StatisticsController::class, 'index'])->name('statistics.index');
 
     Route::middleware(['auth', AdminPanelUnlocked::class])->group(function () {
         Route::get('/admin/lock', [AdminController::class, 'showLockScreen'])->name('admin.locked');

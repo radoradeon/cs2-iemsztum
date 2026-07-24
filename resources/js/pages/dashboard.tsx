@@ -108,9 +108,9 @@ export default function Dashboard() {
                             <Link href="/history" className="px-5 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:text-white transition-colors transform skew-x-[-10deg]">
                                 <span className="block transform skew-x-[10deg]">Historia Meczów</span>
                             </Link>
-                            <button className="px-5 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:text-white transition-colors transform skew-x-[-10deg]">
+                            <Link href="/statistics" className="px-5 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:text-white transition-colors transform skew-x-[-10deg]">
                                 <span className="block transform skew-x-[10deg]">Statystyki</span>
-                            </button>
+                            </Link>
                             {user.role === 'admin' && (
                                 <button className="px-5 py-2 text-xs font-bold text-red-400 uppercase tracking-wider hover:text-red-300 transition-colors transform skew-x-[-10deg] ml-4 border border-red-900/50 bg-red-900/10">
                                     <span className="block transform skew-x-[10deg]">Admin Panel</span>
