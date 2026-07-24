@@ -49,8 +49,18 @@ class AdminController extends Controller
     public function dashboard()
     {
         $servers = Server::all();
+        
+        $mapStandard = Setting::firstOrCreate(['key' => 'map_pool_standard'], ['value' => 'de_mirage;de_dust2;de_inferno;de_nuke;de_ancient;de_anubis;de_vertigo']);
+        $mapWingman = Setting::firstOrCreate(['key' => 'map_pool_wingman'], ['value' => 'de_overpass;de_vertigo;de_inferno;de_nuke;de_cobblestone']);
+        $map1v1 = Setting::firstOrCreate(['key' => 'map_pool_1v1'], ['value' => 'am_redline;am_mirage;am_dust2;am_inferno;am_banana']);
+
         return Inertia::render('Admin/Dashboard', [
-            'servers' => $servers
+            'servers' => $servers,
+            'mapSettings' => [
+                'standard' => $mapStandard->value,
+                'wingman' => $mapWingman->value,
+                '1v1' => $map1v1->value,
+            ]
         ]);
     }
 
@@ -86,5 +96,20 @@ class AdminController extends Controller
     {
         $server->delete();
         return back()->with('success', 'Serwer usunięty.');
+    }
+
+    public function updateMapSettings(Request $request)
+    {
+        $request->validate([
+            'standard' => 'required|string',
+            'wingman' => 'required|string',
+            '1v1' => 'required|string',
+        ]);
+
+        Setting::updateOrCreate(['key' => 'map_pool_standard'], ['value' => $request->standard]);
+        Setting::updateOrCreate(['key' => 'map_pool_wingman'], ['value' => $request->wingman]);
+        Setting::updateOrCreate(['key' => 'map_pool_1v1'], ['value' => $request->input('1v1')]);
+
+        return back()->with('success', 'Pule map zostały pomyślnie zaktualizowane!');
     }
 }

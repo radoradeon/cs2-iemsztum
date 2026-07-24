@@ -1,9 +1,9 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { Server, Settings, Shield, Plus, Edit3, Trash2, Key, HardDrive, Terminal, X, Check, Save } from 'lucide-react';
+import { Server, Settings, Shield, Plus, Edit3, Trash2, Key, HardDrive, Terminal, X, Check, Save, Map, MapPin } from 'lucide-react';
 import React, { useState } from 'react';
 
 export default function AdminDashboard() {
-    const { servers } = usePage<any>().props;
+    const { servers, mapSettings } = usePage<any>().props;
 
     const [isServerModalOpen, setIsServerModalOpen] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -13,8 +13,14 @@ export default function AdminDashboard() {
         name: '', ip: '', port: 27015, rcon_password: '', ftp_host: '', ftp_port: 21, ftp_user: '', ftp_password: '', is_active: true
     });
 
-    const { data: pData, setData: pSetData, post: pPost, reset: pReset, processing: pProcessing, errors: pErrors, recentlySuccessful: pSuccess } = useForm({
+    const { data: pData, setData: pSetData, post: pPost, reset: pReset, processing: pProcessing, recentlySuccessful: pSuccess } = useForm({
         new_password: ''
+    });
+
+    const { data: mData, setData: mSetData, post: mPost, processing: mProcessing, recentlySuccessful: mSuccess } = useForm({
+        standard: mapSettings?.standard || '',
+        wingman: mapSettings?.wingman || '',
+        '1v1': mapSettings?.['1v1'] || ''
     });
 
     const openCreateModal = () => {
@@ -53,9 +59,13 @@ export default function AdminDashboard() {
         pPost('/admin/password', { onSuccess: () => pReset() });
     };
 
+    const handleMapsSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        mPost('/admin/maps');
+    };
+
     const deleteServer = (id: number) => {
         if (confirm('Usunąć ten serwer definitywnie?')) {
-            sSetData({} as any);
             import('@inertiajs/react').then(({ router }) => {
                 router.delete(`/admin/servers/${id}`);
             });
@@ -64,7 +74,7 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-[#070708] text-zinc-300 font-sans selection:bg-red-500 selection:text-white pb-20 relative">
-            <Head title="Zarządzanie Serwerami" />
+            <Head title="Panel Administratora" />
             
             <div className="absolute top-0 right-0 w-full h-[500px] bg-gradient-to-b from-red-600/5 to-transparent pointer-events-none"></div>
 
@@ -82,70 +92,150 @@ export default function AdminDashboard() {
                     </div>
                     <button 
                         onClick={() => setIsPasswordModalOpen(true)}
-                        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white bg-[#131317] border border-zinc-800 px-4 py-2 rounded-lg transition-colors"
+                        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white bg-[#131317] border border-zinc-800 px-4 py-2 rounded-lg transition-colors shadow-inner"
                     >
                         <Key className="w-4 h-4 text-red-500" /> Zmień hasło Admina
                     </button>
                 </div>
             </nav>
 
-            <main className="max-w-[1600px] mx-auto py-12 px-6 relative z-10">
+            <main className="max-w-[1600px] mx-auto py-12 px-6 relative z-10 space-y-16">
                 
-                <div className="flex flex-col md:flex-row items-end justify-between mb-10 border-b border-zinc-800/80 pb-6 gap-6">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Server className="w-4 h-4 text-red-500" />
-                            <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em]">Architektura</span>
+                <section>
+                    <div className="flex flex-col md:flex-row items-end justify-between mb-8 border-b border-zinc-800/80 pb-6 gap-6">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Server className="w-4 h-4 text-red-500" />
+                                <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em]">Architektura</span>
+                            </div>
+                            <h2 className="text-4xl font-black text-white uppercase tracking-tight drop-shadow-md">Maszyny CS2</h2>
                         </div>
-                        <h1 className="text-4xl font-black text-white uppercase tracking-tight drop-shadow-md">Maszyny CS2</h1>
+                        
+                        <button 
+                            onClick={openCreateModal}
+                            className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:shadow-[0_0_30px_rgba(220,38,38,0.4)]"
+                        >
+                            <Plus className="w-4 h-4" strokeWidth={3} /> Podłącz nowy serwer
+                        </button>
                     </div>
-                    
-                    <button 
-                        onClick={openCreateModal}
-                        className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:shadow-[0_0_30px_rgba(220,38,38,0.4)]"
-                    >
-                        <Plus className="w-4 h-4" strokeWidth={3} /> Podłącz nowy serwer
-                    </button>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {servers.map((server: any) => (
-                        <div key={server.id} className="bg-[#0e0e11]/80 backdrop-blur-sm border border-zinc-800/80 hover:border-red-900/50 rounded-2xl overflow-hidden shadow-2xl transition-all group">
-                            <div className="px-6 py-5 border-b border-zinc-800/80 bg-gradient-to-r from-zinc-900/50 to-transparent flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] ${server.is_active ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
-                                    <h3 className="font-black text-white uppercase tracking-wider truncate max-w-[200px]">{server.name}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {servers.map((server: any) => (
+                            <div key={server.id} className="bg-[#0e0e11]/80 backdrop-blur-sm border border-zinc-800/80 hover:border-red-900/50 rounded-2xl overflow-hidden shadow-2xl transition-all group">
+                                <div className="px-6 py-5 border-b border-zinc-800/80 bg-gradient-to-r from-zinc-900/50 to-transparent flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] ${server.is_active ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                                        <h3 className="font-black text-white uppercase tracking-wider truncate max-w-[200px]">{server.name}</h3>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => openEditModal(server)} className="p-1.5 bg-zinc-800 hover:bg-yellow-500 text-zinc-400 hover:text-black rounded transition-colors" title="Edytuj konfigurację">
+                                            <Edit3 className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => deleteServer(server.id)} className="p-1.5 bg-zinc-800 hover:bg-red-500 text-zinc-400 hover:text-white rounded transition-colors" title="Usuń maszynę">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => openEditModal(server)} className="p-1.5 bg-zinc-800 hover:bg-yellow-500 text-zinc-400 hover:text-black rounded transition-colors" title="Edytuj konfigurację">
-                                        <Edit3 className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={() => deleteServer(server.id)} className="p-1.5 bg-zinc-800 hover:bg-red-500 text-zinc-400 hover:text-white rounded transition-colors" title="Usuń maszynę">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                <div className="p-6 space-y-4">
+                                    <div>
+                                        <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Terminal className="w-3 h-3"/> Połączenie GRY & RCON</div>
+                                        <div className="text-sm font-black text-white font-mono bg-[#131317] border border-zinc-800 px-3 py-2 rounded shadow-inner">
+                                            {server.ip}:{server.port}
+                                        </div>
+                                        <div className="text-[10px] text-red-400 font-bold mt-1 px-1 tracking-widest">HASŁO RCON ZASZYFROWANE</div>
+                                    </div>
+                                    
+                                    {server.ftp_host && (
+                                        <div className="pt-2 border-t border-zinc-800/50">
+                                            <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><HardDrive className="w-3 h-3"/> Dostęp FTP (Do pobierania DEM)</div>
+                                            <div className="text-xs font-bold text-zinc-300">
+                                                {server.ftp_user}@{server.ftp_host}:{server.ftp_port}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Terminal className="w-3 h-3"/> Połączenie GRY & RCON</div>
-                                    <div className="text-sm font-black text-white font-mono bg-[#131317] border border-zinc-800 px-3 py-2 rounded shadow-inner">
-                                        {server.ip}:{server.port}
-                                    </div>
-                                    <div className="text-[10px] text-red-400 font-bold mt-1 px-1 tracking-widest">HASŁO RCON ZASZYFROWANE</div>
-                                </div>
-                                
-                                {server.ftp_host && (
-                                    <div className="pt-2 border-t border-zinc-800/50">
-                                        <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><HardDrive className="w-3 h-3"/> Dostęp FTP (Do pobierania DEM)</div>
-                                        <div className="text-xs font-bold text-zinc-300">
-                                            {server.ftp_user}@{server.ftp_host}:{server.ftp_port}
-                                        </div>
+                        ))}
+                    </div>
+                </section>
+
+                <section>
+                    <div className="flex flex-col md:flex-row items-end justify-between mb-8 border-b border-zinc-800/80 pb-6 gap-6">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Map className="w-4 h-4 text-blue-500" />
+                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Ustawienia Rozgrywki</span>
+                            </div>
+                            <h2 className="text-4xl font-black text-white uppercase tracking-tight drop-shadow-md">Pule Map</h2>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleMapsSubmit} className="bg-[#0e0e11]/80 backdrop-blur-sm border border-zinc-800/80 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/5 blur-3xl rounded-full pointer-events-none"></div>
+                        
+                        <div className="relative z-10 grid grid-cols-1 gap-6 mb-8">
+                            <div className="bg-[#131317] border border-zinc-800/50 p-5 rounded-2xl shadow-inner">
+                                <label className="text-xs font-black text-white uppercase tracking-widest mb-1 flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-blue-400" /> Map Pool - Standard (5v5)
+                                </label>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mb-3">Oddzielaj nazwy map średnikiem (;)</p>
+                                <input 
+                                    type="text" 
+                                    value={mData.standard} 
+                                    onChange={e => mSetData('standard', e.target.value)} 
+                                    required 
+                                    className="w-full bg-[#0a0a0c] border border-zinc-800 focus:border-blue-500 text-white px-4 py-3 rounded-xl text-sm font-mono outline-none" 
+                                />
+                            </div>
+
+                            <div className="bg-[#131317] border border-zinc-800/50 p-5 rounded-2xl shadow-inner">
+                                <label className="text-xs font-black text-white uppercase tracking-widest mb-1 flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-emerald-400" /> Map Pool - Wingman (2v2)
+                                </label>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mb-3">Oddzielaj nazwy map średnikiem (;)</p>
+                                <input 
+                                    type="text" 
+                                    value={mData.wingman} 
+                                    onChange={e => mSetData('wingman', e.target.value)} 
+                                    required 
+                                    className="w-full bg-[#0a0a0c] border border-zinc-800 focus:border-emerald-500 text-white px-4 py-3 rounded-xl text-sm font-mono outline-none" 
+                                />
+                            </div>
+
+                            <div className="bg-[#131317] border border-zinc-800/50 p-5 rounded-2xl shadow-inner">
+                                <label className="text-xs font-black text-white uppercase tracking-widest mb-1 flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-orange-400" /> Map Pool - Aim (1v1)
+                                </label>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mb-3">Oddzielaj nazwy map średnikiem (;)</p>
+                                <input 
+                                    type="text" 
+                                    value={mData['1v1']} 
+                                    onChange={e => mSetData('1v1', e.target.value)} 
+                                    required 
+                                    className="w-full bg-[#0a0a0c] border border-zinc-800 focus:border-orange-500 text-white px-4 py-3 rounded-xl text-sm font-mono outline-none" 
+                                />
+                            </div>
+                        </div>
+
+                        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-zinc-800/80 pt-6">
+                            <div className="w-full sm:w-1/2">
+                                {mSuccess && (
+                                    <div className="text-emerald-500 text-xs font-black uppercase tracking-widest flex items-center gap-2 bg-emerald-500/10 px-4 py-2 rounded-lg border border-emerald-500/30 w-fit">
+                                        <Check className="w-4 h-4" /> Ustawienia Map zapisane!
                                     </div>
                                 )}
                             </div>
+                            <button 
+                                disabled={mProcessing} 
+                                type="submit" 
+                                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-3.5 rounded-xl text-xs uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(37,99,235,0.2)] disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                <Save className="w-4 h-4" /> {mProcessing ? 'Zapisywanie...' : 'Zapisz Rotację Map'}
+                            </button>
                         </div>
-                    ))}
-                </div>
+                    </form>
+                </section>
+
             </main>
 
             {isServerModalOpen && (
@@ -244,7 +334,6 @@ export default function AdminDashboard() {
                         <form onSubmit={handlePasswordSubmit}>
                             <div className="mb-6">
                                 <input type="password" required minLength={6} value={pData.new_password} onChange={e => pSetData('new_password', e.target.value)} className="w-full bg-[#131317] border border-zinc-800 focus:border-red-500 text-white px-4 py-4 rounded-xl text-sm font-black tracking-widest text-center outline-none" placeholder="NOWE HASŁO" />
-                                {pErrors.new_password && <div className="text-red-500 text-[10px] font-bold mt-2 text-center uppercase tracking-widest">{pErrors.new_password}</div>}
                             </div>
                             <button disabled={pProcessing || pData.new_password.length < 6} type="submit" className="w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-xl text-xs uppercase tracking-[0.2em] transition-all disabled:opacity-50">
                                 Aktualizuj Hasło

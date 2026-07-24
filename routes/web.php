@@ -85,6 +85,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/servers', [AdminController::class, 'storeServer'])->name('admin.servers.store');
         Route::put('/admin/servers/{server}', [AdminController::class, 'updateServer'])->name('admin.servers.update');
         Route::delete('/admin/servers/{server}', [AdminController::class, 'destroyServer'])->name('admin.servers.destroy');
+
+        Route::post('/admin/maps', [AdminController::class, 'updateMapSettings'])->name('admin.maps.update');
     });
 });
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Server;
+use App\Models\Setting;
 use App\Models\Lobby;
 use App\Models\LobbyPlayer;
 use App\Events\LobbyStateUpdated;
@@ -52,7 +53,7 @@ class LobbyController extends Controller
             'team_assignment' => 'random',
             'server_ip' => $cleanIpPort,
             'server_password' => strtolower($code),
-            'map_pool' => explode(';', env('MAP_POOL_STANDARD', 'de_mirage;de_dust2;de_inferno;de_nuke;de_ancient;de_anubis;de_vertigo')),
+            'map_pool' => explode(';', Setting::where('key', 'map_pool_standard')->value('value') ?? 'de_mirage;de_dust2;de_inferno;de_nuke;de_ancient;de_anubis;de_vertigo'),
         ]);
 
         LobbyPlayer::create([
@@ -132,11 +133,11 @@ class LobbyController extends Controller
 
         if (isset($validated['team_size']) && $validated['team_size'] !== $lobby->team_size) {
             if ($validated['team_size'] == 1) {
-                $validated['map_pool'] = explode(';', env('MAP_POOL_1V1', 'am_redline;am_mirage;am_dust2;am_inferno;am_banana'));
+                $validated['map_pool'] = explode(';', Setting::where('key', 'map_pool_1v1')->value('value') ?? 'am_redline;am_mirage;am_dust2;am_inferno;am_banana');
             } elseif ($validated['team_size'] == 2) {
-                $validated['map_pool'] = explode(';', env('MAP_POOL_WINGMAN', 'de_overpass;de_vertigo;de_inferno;de_nuke;de_cobblestone'));
+                $validated['map_pool'] = explode(';', Setting::where('key', 'map_pool_wingman')->value('value') ?? 'de_overpass;de_vertigo;de_inferno;de_nuke;de_cobblestone');
             } else {
-                $validated['map_pool'] = explode(';', env('MAP_POOL_STANDARD', 'de_mirage;de_dust2;de_inferno;de_nuke;de_ancient;de_anubis;de_vertigo'));
+                $validated['map_pool'] = explode(';', Setting::where('key', 'map_pool_standard')->value('value') ?? 'de_mirage;de_dust2;de_inferno;de_nuke;de_ancient;de_anubis;de_vertigo');
             }
         }
 
@@ -477,6 +478,16 @@ class LobbyController extends Controller
             $rcon = $this->getRconForLobby($lobby);
             $matchPassword = $lobby->server_password ?? '';
 
+            $parts = explode(':', $lobby->server_ip);
+            $ip = $parts[0];
+            $port = $parts[1] ?? 27015;
+            $server = Server::where('ip', $ip)->where('port', $port)->first();
+
+            if ($server && !empty($server->ftp_host)) {
+                $this->updateServerCfgViaFtp($server, $lobby->code, $matchPassword);
+            }
+            // ---------------------------------------------
+
             if (!empty($matchPassword)) {
                 $rcon->sendCommand("sv_password \"{$matchPassword}\"");
             } else {
@@ -489,17 +500,73 @@ class LobbyController extends Controller
             $configUrl = env('APP_URL') . "/api/match/json-config/{$lobby->id}";
             $rcon->sendCommand("matchzy_loadmatch_url \"{$configUrl}\"");
 
+            $rcon->sendCommand("exec server.cfg");
+
             $lobby->update([
                 'status' => 'starting',
                 'match_status' => 'live'
             ]);
             
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("RCON Error in startMatch: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("Error in startMatch: " . $e->getMessage());
         }
 
         broadcast(new LobbyStateUpdated($lobby->id));
         return back();
+    }
+
+    /**
+     * Prywatna metoda pomocnicza do edycji server.cfg przez FTP
+     */
+    private function updateServerCfgViaFtp($server, $lobbyCode, $matchPassword)
+    {
+        $conn = @ftp_connect($server->ftp_host, $server->ftp_port ?? 21, 15);
+        if (!$conn) {
+            throw new \Exception("Nie można połączyć się z FTP: {$server->ftp_host}");
+        }
+
+        $login = @ftp_login($conn, $server->ftp_user, $server->ftp_password);
+        if (!$login) {
+            ftp_close($conn);
+            throw new \Exception("Błąd logowania FTP dla użytkownika: {$server->ftp_user}");
+        }
+
+        ftp_pasv($conn, true);
+
+        $remotePath = 'csgo/cfg/server.cfg';
+        $tempFile = tempnam(sys_get_temp_dir(), 'cfg');
+
+        $downloaded = @ftp_get($conn, $tempFile, $remotePath, FTP_ASCII);
+        
+        $content = '';
+        if ($downloaded && file_exists($tempFile)) {
+            $content = file_get_contents($tempFile);
+        }
+
+        $newHostname = "IEMSZ-{$lobbyCode}@pukawka.pl";
+
+        if (preg_match('/^(\s*hostname\s+)/mi', $content)) {
+            $content = preg_replace('/^(\s*hostname\s+).*/mi', '$1 "' . $newHostname . '"', $content);
+        } else {
+            $content .= "\nhostname \"" . $newHostname . "\"\n";
+        }
+
+        if (preg_match('/^(\s*sv_password\s+)/mi', $content)) {
+            $content = preg_replace('/^(\s*sv_password\s+).*/mi', '$1 "' . $matchPassword . '"', $content);
+        } else {
+            $content .= "sv_password \"" . $matchPassword . "\"\n";
+        }
+
+        file_put_contents($tempFile, $content);
+
+        $uploaded = @ftp_put($conn, $remotePath, $tempFile, FTP_ASCII);
+
+        @unlink($tempFile);
+        ftp_close($conn);
+
+        if (!$uploaded) {
+            throw new \Exception("Nie udało się przesłać zmodyfikowanego pliku server.cfg przez FTP.");
+        }
     }
 
     public function leaderAction(Request $request, Lobby $lobby)
