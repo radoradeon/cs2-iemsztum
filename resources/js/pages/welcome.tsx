@@ -52,7 +52,7 @@ export default function Welcome() {
 
     return (
         <div className="min-h-screen bg-[#070708] text-zinc-300 font-sans selection:bg-yellow-500 selection:text-black overflow-x-hidden">
-            <Head title="Welcome - IEM SZTUM" />
+            <Head title="Witaj" />
             <PromoBanner positionY="bottom" positionX="right" />
 
             <div className="fixed inset-0 z-0">
