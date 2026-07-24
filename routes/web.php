@@ -32,7 +32,7 @@ Route::middleware(['auth'])->group(function () {
 
         $recentMatches = MatchHistory::whereHas('players', function ($query) {
             $query->where('user_id', \Illuminate\Support\Facades\Auth::id());
-        })->latest()->take(5)->get();
+        })->latest()->take(4)->get();
 
         return Inertia::render('dashboard', [
             'active_lobby' => $activeLobby,
@@ -43,7 +43,7 @@ Route::middleware(['auth'])->group(function () {
             'recent_matches' => $recentMatches
         ]);
     })->name('dashboard');
-    
+
 
     Route::post('/lobbies', [LobbyController::class, 'store'])->name('lobbies.store');
     Route::post('/lobbies/join', [LobbyController::class, 'join'])->name('lobbies.join');
