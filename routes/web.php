@@ -4,8 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Models\Lobby;
 use App\Models\LobbyPlayer;
+use App\Models\MatchHistory;
 use App\Http\Controllers\Auth\SteamLoginController;
 use App\Http\Controllers\LobbyController;
+use App\Http\Controllers\MatchHistoryController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -20,23 +22,28 @@ Route::middleware('guest')->group(function () {
 // Trasy ZABEZPIECZONE (Dla zalogowanych)
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', function () {
-        $playerRecord = LobbyPlayer::with('lobby')->where('user_id', Auth::id())->first();
+        $playerRecord = LobbyPlayer::with('lobby')->where('user_id', \Illuminate\Support\Facades\Auth::id())->first();
         $activeLobby = $playerRecord ? $playerRecord->lobby : null;
 
-        // Obliczanie statystyk serwerów
         $serverPool = array_filter(explode(';', env('CS2_SERVERS', '')));
         $totalServers = count($serverPool);
         $usedServers = Lobby::whereNotNull('server_ip')->count();
         $availableServers = max(0, $totalServers - $usedServers);
+
+        $recentMatches = MatchHistory::whereHas('players', function ($query) {
+            $query->where('user_id', \Illuminate\Support\Facades\Auth::id());
+        })->latest()->take(5)->get();
 
         return Inertia::render('dashboard', [
             'active_lobby' => $activeLobby,
             'server_stats' => [
                 'available' => $availableServers,
                 'total' => $totalServers
-            ]
+            ],
+            'recent_matches' => $recentMatches
         ]);
     })->name('dashboard');
+    
 
     Route::post('/lobbies', [LobbyController::class, 'store'])->name('lobbies.store');
     Route::post('/lobbies/join', [LobbyController::class, 'join'])->name('lobbies.join');
@@ -59,6 +66,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/lobbies/{lobby}/match/pause', [LobbyController::class, 'togglePause'])->name('lobbies.match.pause');
     Route::post('/lobbies/{lobby}/match/stop', [LobbyController::class, 'stopMatch'])->name('lobbies.match.stop');
     Route::post('/lobbies/{lobby}/match/action', [LobbyController::class, 'leaderAction'])->name('lobbies.match.action');
+
+    Route::get('/history', [MatchHistoryController::class, 'index'])->name('history.index');
+    Route::get('/history/{id}', [MatchHistoryController::class, 'show'])->name('history.show');
 });
 
 require __DIR__.'/settings.php';

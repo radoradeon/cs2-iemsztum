@@ -380,7 +380,6 @@ export default function Lobby() {
         <div className="min-h-screen bg-[#070708] text-zinc-300 font-sans selection:bg-yellow-500 selection:text-black pb-28">
             <Head title={`Lobby ${lobby.code} - IEM SZTUM`} />
 
-            {/* TOAST NOTIFICATIONS */}
             {toast && (
                 <div className={`fixed bottom-28 right-6 z-[200] px-5 py-3.5 rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 transition-all transform animate-in slide-in-from-right-8 fade-in duration-300 ${
                     toast.type === 'success' ? 'bg-emerald-500 text-black font-bold' :
@@ -394,7 +393,6 @@ export default function Lobby() {
                 </div>
             )}
 
-            {/* DYNAMIC CONFIRMATION DIALOG */}
             {confirmDialog && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-[#0e0e11] border border-red-900/50 rounded-xl w-full max-w-md p-8 shadow-[0_0_50px_rgba(239,68,68,0.1)] transform animate-in zoom-in-95 duration-200">
@@ -532,7 +530,6 @@ export default function Lobby() {
 
             <main className="max-w-[1800px] mx-auto py-8 px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
-                {/* LEWA KOLUMNA: USTAWIENIA I GŁOS */}
                 <div className="lg:col-span-3 flex flex-col gap-6">
                     <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-6">
                         <div className="flex items-center justify-between mb-6">
@@ -591,7 +588,6 @@ export default function Lobby() {
                         </div>
                     </div>
 
-                    {/* CZAT - UMIESZCZONY NA STAŁE W LEWEJ KOLUMNIE */}
                     <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg flex flex-col overflow-hidden h-[500px]">
                         <div className="px-5 py-4 border-b border-zinc-800/80 flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -635,7 +631,6 @@ export default function Lobby() {
                     </div>
                 </div>
 
-                {/* ŚRODKOWA / GŁÓWNA SEKCJA */}
                 {lobby.status === 'waiting' ? (
                     <div className="lg:col-span-9 flex flex-col gap-6">
                         <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-6 flex flex-col min-h-[600px]">
@@ -731,7 +726,6 @@ export default function Lobby() {
                 ) : (
                     <div className="lg:col-span-9 flex flex-col gap-6">
                         
-                        {/* ---------------- VETO REDESIGN ---------------- */}
                         {lobby.status === 'map_veto' && lobby.veto_state && (
                             <>
                                 {(() => {
@@ -747,10 +741,8 @@ export default function Lobby() {
 
                                     return (
                                         <div className="bg-[#0e0e11] border border-zinc-800/80 rounded-2xl p-6 md:p-10 relative overflow-hidden min-h-[700px] flex flex-col shadow-2xl">
-                                            {/* Dynamic background glow based on whose turn it is */}
                                             <div className={`absolute inset-0 ${bgPulse} transition-colors duration-1000 pointer-events-none`}></div>
                                             
-                                            {/* HUD Top Bar */}
                                             <div className="flex flex-col md:flex-row items-center justify-between mb-8 pb-6 border-b border-zinc-800/80 bg-[#131317]/80 p-6 rounded-xl shadow-inner relative overflow-hidden">
                                                 <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl ${currentStep.team === 'team_a' ? 'from-blue-600/20' : 'from-red-600/20'} to-transparent blur-3xl rounded-full -mr-10 -mt-10 pointer-events-none transition-colors duration-1000`}></div>
 
@@ -777,7 +769,6 @@ export default function Lobby() {
                                                         0:{vetoTimeLeft.toString().padStart(2, '0')}
                                                     </div>
                                                     
-                                                    {/* Progress bar timer visual */}
                                                     <div className="w-full h-1 bg-zinc-800 mt-4 rounded-full overflow-hidden">
                                                         <div 
                                                             className={`h-full transition-all duration-1000 ease-linear ${vetoTimeLeft <= 5 ? 'bg-red-500' : 'bg-yellow-500'}`}
@@ -829,13 +820,10 @@ export default function Lobby() {
                                                                   isMyTurn ? (isMyVote ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.5)] -translate-y-3' : 'border-zinc-700/50 hover:border-yellow-500 hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:-translate-y-2') : 
                                                                   'border-zinc-800/50 opacity-80 hover:opacity-100'}`}
                                                         >
-                                                            {/* Tło Mapy */}
                                                             <div className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110" style={{ backgroundImage: `url(${getMapImage(mapName)})` }} />
                                                             
-                                                            {/* Gradient Cienia */}
                                                             <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/50 to-transparent z-10" />
 
-                                                            {/* Nakładka BAN */}
                                                             {isBanned && (
                                                                 <div className="absolute inset-0 bg-red-950/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center">
                                                                     <div className="w-[150%] bg-red-600/20 py-2 border-y border-red-500/50 flex flex-col items-center transform -rotate-12 shadow-[0_0_30px_rgba(220,38,38,0.5)] backdrop-blur-md">
@@ -845,7 +833,6 @@ export default function Lobby() {
                                                                 </div>
                                                             )}
 
-                                                            {/* Nakładka PICK */}
                                                             {isPicked && (
                                                                 <div className="absolute inset-0 bg-yellow-900/30 backdrop-blur-[2px] z-30 flex flex-col items-center justify-center">
                                                                     <div className="w-[150%] bg-yellow-500/20 py-2 border-y border-yellow-500/50 flex flex-col items-center transform -rotate-12 shadow-[0_0_50px_rgba(234,179,8,0.5)] backdrop-blur-md">
@@ -856,7 +843,6 @@ export default function Lobby() {
                                                             )}
 
                                                             <div className="relative z-20 p-4 md:p-5 flex flex-col h-full justify-between">
-                                                                {/* Ikony głosujących graczy */}
                                                                 <div className="flex flex-wrap gap-1.5 justify-end">
                                                                     {votesForMap.map(([userId]) => {
                                                                         const voter = lobby.players.find(p => p.user.id.toString() === userId);
@@ -869,7 +855,6 @@ export default function Lobby() {
                                                                     })}
                                                                 </div>
 
-                                                                {/* Nazwa Mapy */}
                                                                 <div className={`text-2xl md:text-3xl font-black uppercase tracking-widest drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] transition-colors duration-300 ${isBanned ? 'text-zinc-500 line-through decoration-red-500/70 decoration-4' : isPicked ? 'text-yellow-500' : 'text-white group-hover:text-yellow-400'}`}>
                                                                     {mapName.replace('de_', '').replace('am_', '')}
                                                                 </div>
@@ -883,7 +868,6 @@ export default function Lobby() {
                                 })()}
                             </>
                         )}
-                        {/* ---------------- END VETO REDESIGN ---------------- */}
                         
                         {lobby.status === 'starting' && (
                             <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-8 relative overflow-hidden min-h-[600px] flex flex-col items-center justify-center text-center">
@@ -894,7 +878,6 @@ export default function Lobby() {
                                     <div className="w-24 h-24 bg-yellow-500/10 border border-yellow-500/50 rounded-full flex items-center justify-center mb-6 shadow-[0_0_50px_rgba(234,179,8,0.3)]">
                                         <CheckCircle2 className="w-12 h-12 text-yellow-500" />
                                     </div>
-                                        {/* BANER STATUSU MECZU */}
                                         <div className="w-full bg-[#131317] border border-zinc-800 rounded-lg p-4 mb-4 flex items-center justify-between shadow-lg">
                                             <div className="w-full bg-[#131317] border border-zinc-800 rounded-lg p-4 mb-4 flex items-center justify-between shadow-lg">
                                                 <div className="flex items-center gap-3">

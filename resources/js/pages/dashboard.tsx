@@ -1,9 +1,10 @@
 import { Head, usePage, router, Link } from '@inertiajs/react';
 import { 
     Trophy, Target, Crown, ChevronRight, Clock, Server, Download,
-    Map, Key, Gamepad2, Hash, Play
+    Map, Key, Gamepad2, Hash, Play, Swords, ChevronLeft
 } from 'lucide-react';
 import React, { useState } from 'react';
+import PromoBanner from '../components/PromoBanner';
 
 interface User {
     id: number;
@@ -32,6 +33,7 @@ interface PageProps {
         available: number;
         total: number;
     };
+    recent_matches?: any[];
     [key: string]: any;
 }
 
@@ -43,8 +45,20 @@ const getLevelInfo = (elo: number) => {
     return { level: 5, min: 2000, max: 3000, color: 'from-yellow-400 to-orange-600', text: 'text-yellow-400' };
 };
 
+const getMapImage = (mapName: string) => {
+    if (!mapName) return '';
+    const mapLower = mapName.toLowerCase();
+    const name = mapLower.replace('de_', '').replace('am_', '');
+    const standardMaps = ['mirage', 'dust2', 'inferno', 'nuke', 'ancient', 'anubis', 'vertigo', 'overpass'];
+    
+    if (standardMaps.includes(name)) {
+        return `https://raw.githubusercontent.com/MurkyYT/cs2-map-icons/main/images/thumbs/de_${name}_1_png.png`;
+    }
+    return `https://image.gametracker.com/images/maps/160x120/csgo/${mapLower}.jpg`;
+};
+
 export default function Dashboard() {
-    const { auth, active_lobby, server_stats, errors } = usePage<PageProps>().props;
+    const { auth, active_lobby, server_stats, recent_matches = [], errors } = usePage<PageProps>().props;
     const user = auth.user;
     const levelInfo = getLevelInfo(user.elo);
     const progress = user.elo >= 2500 ? 100 : ((user.elo - levelInfo.min) / (levelInfo.max - levelInfo.min)) * 100;
@@ -73,6 +87,8 @@ export default function Dashboard() {
         <div className="min-h-screen bg-[#070708] text-zinc-300 font-sans selection:bg-yellow-500 selection:text-black">
             <Head title="PANEL" />
 
+            <PromoBanner positionY="bottom" positionX="right" />
+
             <nav className="sticky top-0 z-50 bg-[#0a0a0c]/90 border-b border-zinc-800/60 backdrop-blur-xl">
                 <div className="max-w-[1800px] mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-12">
@@ -86,12 +102,12 @@ export default function Dashboard() {
                         </div>
 
                         <div className="hidden lg:flex items-center gap-2">
-                            <button className="px-5 py-2 text-xs font-bold text-black uppercase tracking-wider bg-yellow-500 rounded-sm transform skew-x-[-10deg]">
+                            <Link href="/dashboard" className="px-5 py-2 text-xs font-bold text-black uppercase tracking-wider bg-yellow-500 rounded-sm transform skew-x-[-10deg]">
                                 <span className="block transform skew-x-[10deg]">PANEL</span>
-                            </button>
-                            <button className="px-5 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:text-white transition-colors transform skew-x-[-10deg]">
-                                <span className="block transform skew-x-[10deg]">Turnieje</span>
-                            </button>
+                            </Link>
+                            <Link href="/history" className="px-5 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:text-white transition-colors transform skew-x-[-10deg]">
+                                <span className="block transform skew-x-[10deg]">Historia Meczów</span>
+                            </Link>
                             <button className="px-5 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:text-white transition-colors transform skew-x-[-10deg]">
                                 <span className="block transform skew-x-[10deg]">Statystyki</span>
                             </button>
@@ -133,48 +149,124 @@ export default function Dashboard() {
             <main className="max-w-[1800px] mx-auto py-8 px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
                 <div className="lg:col-span-3 flex flex-col gap-6">
-                    <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-6 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                    <div className="bg-gradient-to-b from-[#131317] to-[#0a0a0c] border border-zinc-800/80 rounded-3xl p-8 relative overflow-hidden group shadow-[0_15px_40px_rgba(0,0,0,0.6)]">
                         
-                        <div className="flex flex-col items-center mb-8 relative z-10">
-                            <div className="relative mb-6">
-                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0e0e11] z-10 top-1/2"></div>
-                                <div className={`w-20 h-20 my-3 transform rotate-45 bg-gradient-to-br ${levelInfo.color} p-1 shadow-2xl`}>
-                                    <div className="w-full h-full bg-[#0e0e11] flex items-center justify-center border border-black/50">
-                                        <span className={`transform -rotate-45 text-4xl font-black ${levelInfo.text}`}>
+                        <div className="absolute top-0 right-0 w-72 h-72 bg-yellow-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/3 transition-all duration-700 group-hover:scale-125 group-hover:bg-yellow-500/15 pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/5 blur-3xl rounded-full translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02] mix-blend-overlay pointer-events-none"></div>
+                        
+                        <div className="flex flex-col items-center mb-10 relative z-10">
+                            <div className="relative mb-6 group/avatar cursor-default">
+                                <div className="absolute inset-0 bg-yellow-500/30 blur-2xl rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-500"></div>
+                                
+                                <img 
+                                    src={user.avatar_url} 
+                                    alt={user.nickname} 
+                                    className="w-32 h-32 rounded-2xl object-cover border-2 border-zinc-700/80 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10 relative group-hover/avatar:border-yellow-500/50 transition-colors duration-300" 
+                                />
+                                
+                                <div className={`absolute -bottom-3 -right-3 w-14 h-14 transform rotate-45 bg-gradient-to-br ${levelInfo.color} p-1 shadow-[0_0_20px_rgba(0,0,0,0.8)] z-20 group-hover/avatar:scale-110 transition-transform duration-300 ease-out`}>
+                                    <div className="w-full h-full bg-[#0e0e11] flex items-center justify-center border border-black/60 shadow-inner">
+                                        <span className={`transform -rotate-45 text-2xl font-black ${levelInfo.text} drop-shadow-md`}>
                                             {levelInfo.level}
                                         </span>
                                     </div>
                                 </div>
                             </div>
-                            <h2 className="text-xl font-black text-white uppercase tracking-wider">{user.nickname}</h2>
-                            <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">Poziom Umiejętności</div>
+                            
+                            <h2 className="text-3xl font-black text-white uppercase tracking-tighter drop-shadow-lg text-center leading-none mt-2">{user.nickname}</h2>
+                            <div className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.4em] mt-3 bg-black/40 px-4 py-1.5 rounded-full border border-zinc-800/80 shadow-inner">
+                                Twój Profil
+                            </div>
                         </div>
 
                         <div className="space-y-6 relative z-10">
-                            <div>
-                                <div className="flex justify-between text-xs font-bold mb-2 uppercase tracking-wider">
-                                    <span className="text-zinc-400" title="SZELO - SZTUM ELO POINTS">PUNKTY SZELO</span>
-                                    <span className={levelInfo.text}>{user.elo} <span className="text-zinc-600">/ {levelInfo.max}</span></span>
+                            <div className="bg-[#0a0a0c]/90 backdrop-blur-md border border-zinc-700/50 hover:border-zinc-600/50 rounded-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 relative overflow-hidden group/elo">
+                
+                            <div className={`absolute top-0 right-0 w-48 h-48 bg-gradient-to-br ${levelInfo.color} opacity-10 blur-3xl group-hover/elo:opacity-20 transition-opacity duration-500 pointer-events-none`}></div>
+
+                            <div className="flex justify-between items-start mb-6 relative z-10">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <Target className={`w-4 h-4 ${levelInfo.text} drop-shadow-[0_0_8px_currentColor]`} />
+                                        <span className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.3em]">Twoje SZELO</span>
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className={`text-4xl md:text-5xl font-black ${levelInfo.text} drop-shadow-[0_0_15px_currentColor] tracking-tighter leading-none`}>
+                                            {user.elo}
+                                        </span>
+                                        {levelInfo.level !== 5 && (
+                                            <span className="text-xs text-zinc-500 font-bold tracking-widest">
+                                                / {levelInfo.max}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="w-full bg-zinc-900 rounded-sm h-1.5 border border-zinc-800">
-                                    <div 
-                                        className={`h-full rounded-sm bg-gradient-to-r ${levelInfo.color}`} 
-                                        style={{ width: `${progress}%` }}
-                                    ></div>
+
+                                <div className="text-right flex flex-col items-end justify-start">
+                                    {levelInfo.level === 5 ? (
+                                        <div className="bg-gradient-to-r from-yellow-500/20 to-orange-600/20 border border-yellow-500/30 text-yellow-500 px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest shadow-inner flex items-center gap-1.5">
+                                            <Crown className="w-3 h-3" /> Max LVL
+                                        </div>
+                                    ) : (
+                                        <div className="bg-[#131317] border border-zinc-800 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] text-zinc-400 flex flex-col items-center shadow-inner group-hover/elo:border-zinc-600 transition-colors">
+                                            <span className="text-white text-sm mb-0.5">{Math.max(0, levelInfo.max - user.elo)}</span>
+                                            <span className="text-zinc-500 text-[8px]">PKT DO AWANSU</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-
-                            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-zinc-800/50">
-                                <div className="bg-[#131317] border border-zinc-800/50 rounded p-3 text-center">
-                                    <Target className="w-4 h-4 text-zinc-500 mx-auto mb-2" />
-                                    <div className="text-xl font-black text-white">{user.matches_played}</div>
-                                    <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Mecze</div>
+                            
+                            <div className="relative z-10">
+                                <div className="w-full bg-[#070708] rounded-full h-3 border border-zinc-800 overflow-hidden relative shadow-[inset_0_3px_6px_rgba(0,0,0,0.8)]">
+                                    <div 
+                                        className={`h-full rounded-full bg-gradient-to-r ${levelInfo.color} relative transition-all duration-1000 ease-out flex items-center justify-end`} 
+                                        style={{ width: `${progress}%` }}
+                                    >
+                                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-20 mix-blend-overlay"></div>
+                                        
+                                        <div className="absolute top-0 right-0 bottom-0 w-24 bg-gradient-to-r from-transparent via-white/50 to-white/90 blur-[2px]"></div>
+                                        
+                                        <div className="w-1.5 h-full bg-white rounded-r-full shadow-[0_0_10px_#fff]"></div>
+                                    </div>
                                 </div>
-                                <div className="bg-[#131317] border border-zinc-800/50 rounded p-3 text-center">
-                                    <Crown className="w-4 h-4 text-yellow-500 mx-auto mb-2" />
-                                    <div className="text-xl font-black text-white">{user.mvps}</div>
-                                    <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-1">MVP</div>
+
+                                <div className="flex justify-between items-center mt-3 px-1">
+                                    <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest ${levelInfo.text} drop-shadow-[0_0_5px_currentColor]`}>
+                                        <ChevronLeft className="w-3 h-3 opacity-50" />
+                                        Poziom {levelInfo.level}
+                                    </div>
+                                    
+                                    {levelInfo.level !== 5 ? (
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-1.5 transition-colors group-hover/elo:text-zinc-400">
+                                            Poziom {levelInfo.level + 1}
+                                            <ChevronRight className="w-3 h-3 opacity-50" />
+                                        </div>
+                                    ) : (
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-yellow-500 flex items-center gap-1.5 drop-shadow-[0_0_5px_currentColor]">
+                                            Global Elite <Crown className="w-3 h-3" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                            <div className="grid grid-cols-2 gap-4 pt-2">
+                                <div className="bg-gradient-to-b from-[#1a1a20] to-[#131317] border border-zinc-700/50 hover:border-zinc-500/50 rounded-2xl p-5 text-center group/stat transition-all duration-300 hover:-translate-y-1.5 shadow-lg hover:shadow-[0_10px_20px_rgba(0,0,0,0.4)]">
+                                    <div className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center mx-auto mb-3 border border-zinc-800 group-hover/stat:border-zinc-500 group-hover:bg-zinc-800 transition-colors shadow-inner">
+                                        <Target className="w-5 h-5 text-zinc-400 group-hover/stat:text-white transition-colors" />
+                                    </div>
+                                    <div className="text-3xl font-black text-white drop-shadow-md">{user.matches_played}</div>
+                                    <div className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.2em] mt-1.5">Rozgrywek</div>
+                                </div>
+                                
+                                <div className="bg-gradient-to-b from-[#1a1a20] to-[#131317] border border-yellow-900/30 hover:border-yellow-500/50 rounded-2xl p-5 text-center group/stat transition-all duration-300 hover:-translate-y-1.5 shadow-lg hover:shadow-[0_10px_20px_rgba(234,179,8,0.15)] relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-500/10 blur-xl rounded-full pointer-events-none"></div>
+                                    <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-3 border border-yellow-500/30 group-hover/stat:border-yellow-500 group-hover:bg-yellow-500/20 transition-colors shadow-inner relative z-10">
+                                        <Crown className="w-5 h-5 text-yellow-500 group-hover/stat:scale-110 transition-transform duration-300" />
+                                    </div>
+                                    <div className="text-3xl font-black text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.4)] relative z-10">{user.mvps}</div>
+                                    <div className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.2em] mt-1.5 relative z-10">Tytuły MVP</div>
                                 </div>
                             </div>
                         </div>
@@ -300,20 +392,61 @@ export default function Dashboard() {
                         <div className="px-8 py-5 border-b border-zinc-800/60 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <Clock className="w-5 h-5 text-zinc-500" />
-                                <h3 className="text-sm font-black text-white uppercase tracking-wider">Ostatnie Mecze</h3>
+                                <h3 className="text-sm font-black text-white uppercase tracking-wider">Twoje Ostatnie Mecze</h3>
                             </div>
-                            <button className="text-xs font-bold text-zinc-500 hover:text-white flex items-center transition-colors uppercase tracking-widest">
+                            <Link href="/history" className="text-xs font-bold text-zinc-500 hover:text-white flex items-center transition-colors uppercase tracking-widest">
                                 Pełna historia <ChevronRight className="w-4 h-4 ml-1" />
-                            </button>
+                            </Link>
                         </div>
                         
-                        <div className="flex-1 p-6 flex items-center justify-center text-center">
-                            <div>
-                                <Map className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-                                <div className="text-sm font-bold text-zinc-400">Brak historii spotkań</div>
-                                <div className="text-xs text-zinc-600 mt-1">Rozegraj swój pierwszy mecz, aby zobaczyć statystyki.</div>
+                        {recent_matches.length > 0 ? (
+                            <div className="flex-1 p-3 space-y-3">
+                                {recent_matches.map((match) => {
+                                    const winA = match.series_score_a > match.series_score_b;
+                                    const winB = match.series_score_b > match.series_score_a;
+                                    const isDraw = match.series_score_a === match.series_score_b;
+                                    const firstMap = match.map_history && match.map_history.length > 0 ? match.map_history[0].map : '';
+                                    
+                                    return (
+                                        <Link key={match.id} href={`/history/${match.id}`} className="relative flex items-center justify-between border border-zinc-800/80 rounded-md transition-colors group overflow-hidden h-20 shadow-md">
+                                            <div className="absolute inset-0 bg-cover bg-center opacity-20 group-hover:opacity-30 transition-opacity duration-500" style={{ backgroundImage: firstMap ? `url(${getMapImage(firstMap)})` : 'none' }}></div>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-[#131317] via-[#131317]/80 to-[#131317]/40"></div>
+                                            
+                                            <div className="relative z-10 flex items-center gap-6 w-1/3 px-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">{new Date(match.created_at).toLocaleDateString()}</span>
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-wider bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 px-2 py-0.5 rounded w-fit">{match.format}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="relative z-10 flex items-center justify-center gap-4 w-1/3">
+                                                <span className={`text-sm font-black uppercase tracking-wider truncate w-24 text-right ${winA ? 'text-white' : (isDraw ? 'text-zinc-400' : 'text-zinc-500')}`}>{match.team_a_name}</span>
+                                                <div className="flex items-center bg-black/60 backdrop-blur-sm border border-zinc-700/80 rounded px-4 py-1.5 shadow-inner">
+                                                    <span className={`text-lg font-black ${winA ? 'text-blue-400' : 'text-white'}`}>{match.series_score_a}</span>
+                                                    <span className="mx-2 text-zinc-600 font-bold">-</span>
+                                                    <span className={`text-lg font-black ${winB ? 'text-red-400' : 'text-white'}`}>{match.series_score_b}</span>
+                                                </div>
+                                                <span className={`text-sm font-black uppercase tracking-wider truncate w-24 text-left ${winB ? 'text-white' : (isDraw ? 'text-zinc-400' : 'text-zinc-500')}`}>{match.team_b_name}</span>
+                                            </div>
+
+                                            <div className="relative z-10 flex justify-end w-1/3 pr-4">
+                                                <span className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest flex items-center opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                                    Zobacz szczegóły <ChevronRight className="w-3 h-3 ml-1" />
+                                                </span>
+                                            </div>
+                                        </Link>
+                                    );
+                                })}
                             </div>
-                        </div>
+                        ) : (
+                            <div className="flex-1 p-6 flex items-center justify-center text-center min-h-[200px]">
+                                <div>
+                                    <Swords className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
+                                    <div className="text-sm font-bold text-zinc-400">Brak historii spotkań</div>
+                                    <div className="text-xs text-zinc-600 mt-1">Rozegraj swój pierwszy mecz, aby zobaczyć statystyki.</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                 </div>
