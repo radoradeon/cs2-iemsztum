@@ -112,9 +112,9 @@ export default function Dashboard() {
                                 <span className="block transform skew-x-[10deg]">Statystyki</span>
                             </Link>
                             {user.role === 'admin' && (
-                                <button className="px-5 py-2 text-xs font-bold text-red-400 uppercase tracking-wider hover:text-red-300 transition-colors transform skew-x-[-10deg] ml-4 border border-red-900/50 bg-red-900/10">
+                                <Link href="/admin/dashboard" className="px-5 py-2 text-xs font-bold text-red-400 uppercase tracking-wider hover:text-red-300 transition-colors transform skew-x-[-10deg] ml-4 border border-red-900/50 bg-red-900/10">
                                     <span className="block transform skew-x-[10deg]">Admin Panel</span>
-                                </button>
+                                </Link>
                             )}
                         </div>
                     </div>

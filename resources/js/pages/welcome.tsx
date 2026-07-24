@@ -4,6 +4,7 @@ import {
     Gamepad2, Rocket, Users, ChevronRight 
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import PromoBanner from '../components/PromoBanner';
 
 interface SharedData {
     auth: {
@@ -52,6 +53,7 @@ export default function Welcome() {
     return (
         <div className="min-h-screen bg-[#070708] text-zinc-300 font-sans selection:bg-yellow-500 selection:text-black overflow-x-hidden">
             <Head title="Welcome - IEM SZTUM" />
+            <PromoBanner positionY="bottom" positionX="right" />
 
             <div className="fixed inset-0 z-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f2e_1px,transparent_1px),linear-gradient(to_bottom,#1f1f2e_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20"></div>
