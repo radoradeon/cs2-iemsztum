@@ -114,7 +114,7 @@ export default function Welcome() {
                     </ScrollReveal>
 
                     <ScrollReveal delay={450}>
-                        <Link href={route('register')} className="group bg-white text-black px-12 py-5 rounded-sm font-black text-lg uppercase tracking-[0.2em] transition-all hover:bg-zinc-200 flex items-center justify-center gap-3 transform skew-x-[-10deg]">
+                        <Link href={route('login')} className="group bg-white text-black px-12 py-5 rounded-sm font-black text-lg uppercase tracking-[0.2em] transition-all hover:bg-zinc-200 flex items-center justify-center gap-3 transform skew-x-[-10deg]">
                             <span className="block transform skew-x-[10deg] flex items-center gap-2">
                                 DOŁĄCZ DO PLEBSU <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </span>
