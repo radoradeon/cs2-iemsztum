@@ -193,16 +193,30 @@ export default function Lobby() {
 
     useEffect(() => {
         const channel = (window as any).Echo?.private(`lobby.${lobby.id}`);
-        if (!channel) return;
         
-        channel.listen('LobbyStateUpdated', () => { router.reload({ only: ['lobby'] }); });
-        channel.listen('LobbyChatMessage', (e: any) => {
+        if (!channel) {
+            console.error("Błąd: Obiekt Echo nie jest zainicjalizowany! Reverb nie nasłuchuje.");
+            return;
+        }
+
+        console.log(`Pomyślnie podpięto nasłuchiwanie do kanału: private-lobby.${lobby.id}`);
+
+        channel.listen('.App\\Events\\LobbyStateUpdated', () => { 
+            console.log("Odebrano event z Reverb: LobbyStateUpdated");
+            
+            router.reload({ 
+                only: ['lobby']
+            }); 
+        });
+
+        channel.listen('.App\\Events\\LobbyChatMessage', (e: any) => {
+            console.log("Odebrano event z Reverb: Nowa wiadomość", e);
             setMessages(prev => [...prev, { user: e.user, text: e.message, time: e.time, isSystem: false }]);
         });
 
         return () => {
-            channel.stopListening('LobbyStateUpdated');
-            channel.stopListening('LobbyChatMessage');
+            channel.stopListening('.App\\Events\\LobbyStateUpdated');
+            channel.stopListening('.App\\Events\\LobbyChatMessage');
             (window as any).Echo.leave(`lobby.${lobby.id}`);
         };
     }, [lobby.id]);
