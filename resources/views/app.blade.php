@@ -11,6 +11,12 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
+        <meta property="og:title" content="IEM Sztum - Platforma E-sportowa">
+        <meta property="og:description" content="Dołącz do rozgrywek, stwórz lobby i graj!">
+        <meta property="og:image" content="{{ url('images/social-preview.jpg') }}">
+        <meta property="og:url" content="https://iemsztum.pl">
+        <meta property="og:type" content="website">
+
         @routes
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
