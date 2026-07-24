@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Server;
 use App\Models\Lobby;
 use App\Models\LobbyPlayer;
 use App\Events\LobbyStateUpdated;
@@ -27,17 +28,21 @@ class LobbyController extends Controller
             $code = strtoupper(Str::random(6));
         } while (Lobby::where('code', $code)->exists());
 
-        $serverPool = array_filter(explode(';', env('CS2_SERVERS', '')));
-        $activeServers = Lobby::whereNotNull('server_ip')->pluck('server_ip')->toArray();
-        $availableServers = array_diff($serverPool, $activeServers);
+        // NOWY SYSTEM: Wyciągamy zajęte adresy (IP:PORT)
+        $usedServerIps = Lobby::whereNotNull('server_ip')->pluck('server_ip')->toArray();
 
-        if (empty($availableServers)) {
+        $availableServer = Server::where('is_active', true)
+            ->get()
+            ->filter(function($server) use ($usedServerIps) {
+                $serverIpString = $server->ip . ':' . $server->port;
+                return !in_array($serverIpString, $usedServerIps);
+            })->first();
+
+        if (!$availableServer) {
             return back()->withErrors(['error' => 'Brak wolnych serwerów CS2! Wszystkie sloty są aktualnie zajęte.']);
         }
 
-        $serverEntry = array_values($availableServers)[0];
-        $serverParts = explode(':', $serverEntry);
-        $cleanIpPort = ($serverParts[0] ?? '127.0.0.1') . ':' . ($serverParts[1] ?? '27015');
+        $cleanIpPort = $availableServer->ip . ':' . $availableServer->port;
 
         $lobby = Lobby::create([
             'code' => $code,
@@ -301,14 +306,21 @@ class LobbyController extends Controller
         return back();
     }
 
-    private function getRconForLobby(Lobby $lobby)
+    protected function getRconForLobby($lobby)
     {
-        foreach (explode(';', env('CS2_SERVERS', '')) as $srv) {
-            if (str_contains($srv, $lobby->server_ip)) {
-                return new RconService($srv);
-            }
+        $parts = explode(':', $lobby->server_ip);
+        $ip = $parts[0];
+        $port = $parts[1] ?? 27015;
+
+        $server = \App\Models\Server::where('ip', $ip)->where('port', $port)->first();
+
+        if (!$server) {
+            throw new \Exception("Nie znaleziono w bazie serwera dla adresu: {$lobby->server_ip}");
         }
-        return new RconService($lobby->server_ip . ':27015:');
+
+        $rconString = $server->ip . ':' . $server->port . ':' . $server->rcon_password;
+        
+        return new RconService($rconString);
     }
 
     public function vetoFinalize(Lobby $lobby)
@@ -540,12 +552,18 @@ class LobbyController extends Controller
     {
         if (Auth::id() !== $lobby->leader_id) return abort(403);
 
-        $fullServerConfig = '';
-        foreach (explode(';', env('CS2_SERVERS', '')) as $srv) {
-            if (str_contains($srv, $lobby->server_ip)) { $fullServerConfig = $srv; break; }
+        $parts = explode(':', $lobby->server_ip);
+        $ip = $parts[0];
+        $port = $parts[1] ?? 27015;
+
+        $server = Server::where('ip', $ip)->where('port', $port)->first();
+
+        if (!$server) {
+            return back()->withErrors(['error' => 'Nie znaleziono konfiguracji tego serwera w bazie danych.']);
         }
 
-        $rcon = new RconService($fullServerConfig ?: $lobby->server_ip . ':27015:');
+        $rconString = $server->ip . ':' . $server->port . ':' . $server->rcon_password;
+        $rcon = new RconService($rconString);
 
         if ($lobby->match_status === 'live') {
             $rcon->sendCommand("mp_pause_match");

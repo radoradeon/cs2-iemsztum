@@ -2,12 +2,17 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Models\Server;
 use App\Models\Lobby;
 use App\Models\LobbyPlayer;
 use App\Models\MatchHistory;
 use App\Http\Controllers\Auth\SteamLoginController;
 use App\Http\Controllers\LobbyController;
 use App\Http\Controllers\MatchHistoryController;
+use App\Http\Controllers\AdminController;
+use App\Http\Middleware\AdminPanelUnlocked;
+
+// Welcome
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -26,7 +31,7 @@ Route::middleware(['auth'])->group(function () {
         $activeLobby = $playerRecord ? $playerRecord->lobby : null;
 
         $serverPool = array_filter(explode(';', env('CS2_SERVERS', '')));
-        $totalServers = count($serverPool);
+        $totalServers = Server::where('is_active', true)->count();
         $usedServers = Lobby::whereNotNull('server_ip')->count();
         $availableServers = max(0, $totalServers - $usedServers);
 
@@ -69,6 +74,18 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/history', [MatchHistoryController::class, 'index'])->name('history.index');
     Route::get('/history/{id}', [MatchHistoryController::class, 'show'])->name('history.show');
+
+    Route::middleware(['auth', AdminPanelUnlocked::class])->group(function () {
+        Route::get('/admin/lock', [AdminController::class, 'showLockScreen'])->name('admin.locked');
+        Route::post('/admin/unlock', [AdminController::class, 'unlock'])->name('admin.unlock');
+        
+        Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+        Route::post('/admin/password', [AdminController::class, 'changePassword'])->name('admin.password.change');
+        
+        Route::post('/admin/servers', [AdminController::class, 'storeServer'])->name('admin.servers.store');
+        Route::put('/admin/servers/{server}', [AdminController::class, 'updateServer'])->name('admin.servers.update');
+        Route::delete('/admin/servers/{server}', [AdminController::class, 'destroyServer'])->name('admin.servers.destroy');
+    });
 });
 
 require __DIR__.'/settings.php';
