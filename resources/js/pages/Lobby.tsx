@@ -110,6 +110,15 @@ export default function Lobby() {
     const isLeader = auth.user.id === lobby.leader_id;
     const currentPlayer = lobby.players.find(p => p.user.id === auth.user.id);
     
+    // CUSTOM TOAST & DYNAMIC MODAL SYSTEM
+    const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
+    const [confirmDialog, setConfirmDialog] = useState<'delete' | 'stop' | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+        setToast({message, type});
+        setTimeout(() => setToast(null), 3500);
+    };
+
     const [copied, setCopied] = useState(false);
     const [isDrawing, setIsDrawing] = useState(false);
     
@@ -168,7 +177,7 @@ export default function Lobby() {
         if (isInitialMount.current) {
             isInitialMount.current = false;
         } else {
-            //chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
     }, [messages]);
 
@@ -191,6 +200,7 @@ export default function Lobby() {
     const copyCode = () => {
         navigator.clipboard.writeText(lobby.code);
         setCopied(true);
+        showToast('Kod poczekalni został skopiowany!', 'success');
         setTimeout(() => setCopied(false), 2500);
     };
 
@@ -300,12 +310,6 @@ export default function Lobby() {
         if (userId) { router.post(`/lobbies/${lobby.id}/move`, { user_id: userId, team: targetTeam }, { preserveScroll: true }); }
     };
 
-    const handleDeleteLobby = () => {
-        if (confirm('Czy na pewno chcesz zamknąć i usunąć poczekalnię? Spowoduje to wyrzucenie wszystkich przypisanych do niej graczy. Tej akcji nie można cofnąć - wymusi to konieczność utworzenia nowej poczekalni i jej konfiguracji w przypadku kontynuowania rozgrywki w IEM SZTUM.')) {
-            router.delete(`/lobbies/${lobby.id}`);
-        }
-    };
-
     const unassignedPlayers = lobby.players.filter(p => p.team === 'unassigned');
     const teamAPlayers = lobby.players.filter(p => p.team === 'team_a');
     const teamBPlayers = lobby.players.filter(p => p.team === 'team_b');
@@ -375,6 +379,58 @@ export default function Lobby() {
     return (
         <div className="min-h-screen bg-[#070708] text-zinc-300 font-sans selection:bg-yellow-500 selection:text-black pb-28">
             <Head title={`Lobby ${lobby.code} - IEM SZTUM`} />
+
+            {/* TOAST NOTIFICATIONS */}
+            {toast && (
+                <div className={`fixed bottom-28 right-6 z-[200] px-5 py-3.5 rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 transition-all transform animate-in slide-in-from-right-8 fade-in duration-300 ${
+                    toast.type === 'success' ? 'bg-emerald-500 text-black font-bold' :
+                    toast.type === 'error' ? 'bg-red-500 text-white font-bold' :
+                    'bg-zinc-800 border border-zinc-700 text-white font-bold'
+                }`}>
+                    {toast.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
+                    {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
+                    {toast.type === 'info' && <Info className="w-5 h-5" />}
+                    <span className="text-sm tracking-wider uppercase">{toast.message}</span>
+                </div>
+            )}
+
+            {/* DYNAMIC CONFIRMATION DIALOG */}
+            {confirmDialog && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-[#0e0e11] border border-red-900/50 rounded-xl w-full max-w-md p-8 shadow-[0_0_50px_rgba(239,68,68,0.1)] transform animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-4 mb-6 text-red-500">
+                            <div className="p-3 bg-red-500/10 rounded-full border border-red-500/20">
+                                <AlertCircle className="w-8 h-8" />
+                            </div>
+                            <h2 className="text-xl font-black uppercase tracking-wider">
+                                {confirmDialog === 'delete' ? 'Usuwanie Poczekalni' : 'Zakończenie Meczu'}
+                            </h2>
+                        </div>
+                        <p className="text-sm text-zinc-400 mb-8 font-medium leading-relaxed">
+                            {confirmDialog === 'delete' 
+                                ? <>Czy na pewno chcesz zamknąć i usunąć poczekalnię? Spowoduje to wyrzucenie wszystkich przypisanych do niej graczy.</>
+                                : <>Czy na pewno chcesz przedwcześnie zakończyć trwający mecz? Serwer zostanie zresetowany do stanu początkowego, a gracze usunięci z areny.</>
+                            }
+                            <br/><br/><span className="text-white font-bold">Tej akcji nie można cofnąć!</span>
+                        </p>
+                        <div className="flex gap-4">
+                            <button onClick={() => setConfirmDialog(null)} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-lg text-sm uppercase tracking-wider transition-colors">
+                                Anuluj
+                            </button>
+                            <button onClick={() => {
+                                if (confirmDialog === 'delete') {
+                                    router.delete(`/lobbies/${lobby.id}`);
+                                } else {
+                                    router.post(`/lobbies/${lobby.id}/match/stop`);
+                                }
+                                setConfirmDialog(null);
+                            }} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black py-3 rounded-lg text-sm uppercase tracking-wider transition-colors shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                                {confirmDialog === 'delete' ? 'Usuń definitywnie' : 'Potwierdź i Zakończ'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {isSettingsOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
@@ -476,6 +532,7 @@ export default function Lobby() {
 
             <main className="max-w-[1800px] mx-auto py-8 px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
+                {/* LEWA KOLUMNA: USTAWIENIA I GŁOS */}
                 <div className="lg:col-span-3 flex flex-col gap-6">
                     <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-6">
                         <div className="flex items-center justify-between mb-6">
@@ -511,7 +568,7 @@ export default function Lobby() {
                             </div>
                         </div>
                         {isLeader && (
-                            <button onClick={handleDeleteLobby} className="w-full mt-4 bg-red-500/5 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 hover:border-red-500 py-3 rounded-sm font-black text-[10px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+                            <button onClick={() => setConfirmDialog('delete')} className="w-full mt-4 bg-red-500/5 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 hover:border-red-500 py-3 rounded-sm font-black text-[10px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
                                 <Trash2 className="w-4 h-4" /> Usuń poczekalnię
                             </button>
                         )}
@@ -534,6 +591,7 @@ export default function Lobby() {
                         </div>
                     </div>
 
+                    {/* CZAT - UMIESZCZONY NA STAŁE W LEWEJ KOLUMNIE */}
                     <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg flex flex-col overflow-hidden h-[500px]">
                         <div className="px-5 py-4 border-b border-zinc-800/80 flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -577,6 +635,7 @@ export default function Lobby() {
                     </div>
                 </div>
 
+                {/* ŚRODKOWA / GŁÓWNA SEKCJA */}
                 {lobby.status === 'waiting' ? (
                     <div className="lg:col-span-9 flex flex-col gap-6">
                         <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-6 flex flex-col min-h-[600px]">
@@ -671,6 +730,8 @@ export default function Lobby() {
                     </div>
                 ) : (
                     <div className="lg:col-span-9 flex flex-col gap-6">
+                        
+                        {/* ---------------- VETO REDESIGN ---------------- */}
                         {lobby.status === 'map_veto' && lobby.veto_state && (
                             <>
                                 {(() => {
@@ -679,52 +740,75 @@ export default function Lobby() {
                                     const isMyTurn = currentStep.team === currentPlayer?.team;
                                     const activeTeamName = currentStep.team === 'team_a' ? lobby.team_a_name : lobby.team_b_name;
                                     const teamColor = currentStep.team === 'team_a' ? 'text-blue-500' : 'text-red-500';
-                                    const bgPulse = currentStep.team === 'team_a' ? 'bg-blue-500/5' : 'bg-red-500/5';
+                                    const bgPulse = currentStep.team === 'team_a' ? 'bg-blue-600/5' : 'bg-red-600/5';
 
                                     const myVotes = state.votes[auth.user.id] || [];
                                     const isMaxVotesReached = myVotes.length >= currentStep.count;
 
                                     return (
-                                        <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-8 relative overflow-hidden min-h-[600px] flex flex-col">
+                                        <div className="bg-[#0e0e11] border border-zinc-800/80 rounded-2xl p-6 md:p-10 relative overflow-hidden min-h-[700px] flex flex-col shadow-2xl">
+                                            {/* Dynamic background glow based on whose turn it is */}
                                             <div className={`absolute inset-0 ${bgPulse} transition-colors duration-1000 pointer-events-none`}></div>
-                                            <div className="bg-[#131317] border border-zinc-800 p-3 rounded-sm text-xs text-zinc-400 mb-6 flex items-center justify-between shadow-md">
-                                                <span className="flex items-center"><Info className="mr-2"></Info> <b>Zasady Veto ({lobby.format.toUpperCase()}):</b> {lobby.format === 'bo1' ? 'Drużyny odrzucają mapy naprzemiennie, aż zostanie 1 decydująca mapa.' : lobby.format === 'bo3' ? 'Drużyny odrzucają mapy, aż w puli zostaną dokładnie 3 mapy do rozegrania serii.' : 'Drużyny odrzucają mapy, aż zostanie 5 map do wyboru.'}</span>
+                                            
+                                            {/* HUD Top Bar */}
+                                            <div className="flex flex-col md:flex-row items-center justify-between mb-8 pb-6 border-b border-zinc-800/80 bg-[#131317]/80 p-6 rounded-xl shadow-inner relative overflow-hidden">
+                                                <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl ${currentStep.team === 'team_a' ? 'from-blue-600/20' : 'from-red-600/20'} to-transparent blur-3xl rounded-full -mr-10 -mt-10 pointer-events-none transition-colors duration-1000`}></div>
+
+                                                <div className="z-10 relative w-full md:w-auto text-center md:text-left mb-6 md:mb-0">
+                                                    <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
+                                                        <span className="bg-yellow-500 text-black font-black px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] rounded-sm shadow-[0_0_15px_rgba(234,179,8,0.4)] animate-pulse flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 bg-black rounded-full animate-ping"></div> Live Veto
+                                                        </span>
+                                                        <span className="text-zinc-400 font-bold text-xs uppercase tracking-widest bg-zinc-800 px-3 py-1.5 rounded-sm border border-zinc-700">Faza {state.current_step_index + 1} / {state.steps.length}</span>
+                                                    </div>
+                                                    <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter flex flex-wrap items-center justify-center md:justify-start gap-3 drop-shadow-md">
+                                                        <span className={`${teamColor} drop-shadow-[0_0_15px_currentColor] transition-colors duration-500`}>{activeTeamName}</span>
+                                                        <span className="text-zinc-500 text-2xl md:text-4xl">{currentStep.action === 'ban' ? 'ODRZUCA' : 'WYBIERA'}</span>
+                                                        <span className="bg-zinc-800 border border-zinc-700 px-4 py-1 text-white rounded shadow-lg">{currentStep.count}</span>
+                                                        <span className="text-zinc-500 text-2xl md:text-4xl">{currentStep.count === 1 ? 'MAPĘ' : 'MAPY'}</span>
+                                                    </h2>
+                                                </div>
+                                                
+                                                <div className="text-center md:text-right z-10 relative flex flex-col items-center md:items-end bg-black/40 px-8 py-4 rounded-lg border border-zinc-800/80">
+                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+                                                        <Clock className="w-4 h-4 text-zinc-400" /> POZOSTAŁY CZAS
+                                                    </div>
+                                                    <div className={`text-6xl md:text-7xl font-black tracking-tighter transition-all duration-300 ${vetoTimeLeft <= 5 ? 'text-red-500 drop-shadow-[0_0_25px_rgba(239,68,68,0.8)] scale-110' : 'text-white drop-shadow-lg'}`}>
+                                                        0:{vetoTimeLeft.toString().padStart(2, '0')}
+                                                    </div>
+                                                    
+                                                    {/* Progress bar timer visual */}
+                                                    <div className="w-full h-1 bg-zinc-800 mt-4 rounded-full overflow-hidden">
+                                                        <div 
+                                                            className={`h-full transition-all duration-1000 ease-linear ${vetoTimeLeft <= 5 ? 'bg-red-500' : 'bg-yellow-500'}`}
+                                                            style={{ width: `${(vetoTimeLeft / 20) * 100}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
                                             </div>
+
                                             {state.history && state.history.length > 0 && (
-                                                <div className="relative z-10 flex flex-wrap gap-2 mb-6">
+                                                <div className="relative z-10 flex flex-wrap gap-2 mb-8 p-4 bg-[#131317]/80 rounded-xl border border-zinc-800/80 shadow-inner">
+                                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] self-center mr-3">Historia:</span>
                                                     {state.history.map((h: any, i: number) => (
-                                                        <div key={i} className="px-3 py-1.5 bg-[#131317] border border-zinc-800 rounded-sm text-[10px] font-bold uppercase tracking-widest text-zinc-400 shadow-sm flex items-center gap-2">
-                                                            <span className="text-zinc-600">FAZA {h.phase}.</span>
-                                                            <span className={h.team === 'team_a' ? 'text-blue-500' : (h.team === 'team_b' ? 'text-red-500' : 'text-yellow-500')}>
+                                                        <div key={i} className="px-3 py-1.5 bg-[#0a0a0c] border border-zinc-800/80 rounded flex items-center gap-2 transition-all hover:bg-zinc-800 hover:scale-105 cursor-default shadow">
+                                                            <span className={`text-[10px] font-black uppercase tracking-widest ${h.team === 'team_a' ? 'text-blue-500' : (h.team === 'team_b' ? 'text-red-500' : 'text-yellow-500')}`}>
                                                                 {h.team === 'team_a' ? lobby.team_a_name : (h.team === 'team_b' ? lobby.team_b_name : 'SYSTEM')}
                                                             </span>
-                                                            <span className="text-zinc-500">{h.action === 'ban' ? 'odrzuca' : 'wybiera'}</span>
-                                                            <span className="text-white">{h.maps.map((m:string) => m.replace('de_','').replace('am_','')).join(', ')}</span>
+                                                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{h.action === 'ban' ? 'odrzuca' : 'wybiera'}</span>
+                                                            <span className="text-[10px] text-white font-black uppercase tracking-widest">{h.maps.map((m:string) => m.replace('de_','').replace('am_','')).join(', ')}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             )}
 
-                                            <div className="relative z-10 flex items-center justify-between mb-8 pb-6 border-b border-zinc-800">
-                                                <div>
-                                                    <div className="text-yellow-500 text-[10px] font-black uppercase tracking-[0.3em] mb-2 animate-pulse">FAZA {state.current_step_index + 1}</div>
-                                                    <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-wider">
-                                                        <span className={teamColor}>{activeTeamName}</span> {currentStep.action === 'ban' ? 'ODRZUCA' : 'WYBIERA'} <span className="bg-[#131317] px-3 py-1 border border-zinc-700 text-yellow-500">{currentStep.count}</span> MAPY
-                                                    </h2>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">POZOSTAŁY CZAS</div>
-                                                    <div className={`text-5xl font-black ${vetoTimeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{vetoTimeLeft}s</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 flex-1">
+                                            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
                                                 {!isMyTurn && (
-                                                    <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm rounded-lg flex items-center justify-center border border-zinc-800">
-                                                        <div className="text-center">
-                                                            <RefreshCw className="w-12 h-12 text-zinc-500 animate-spin mx-auto mb-4" />
-                                                            <div className="text-xl font-black text-white uppercase tracking-widest">{activeTeamName} w trakcie głosowania...</div>
-                                                            <div className="text-xs text-zinc-500 mt-2 font-bold uppercase tracking-widest">Oczekuj na swoją kolej</div>
+                                                    <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center border border-zinc-800/50 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)]">
+                                                        <div className="text-center bg-[#0e0e11] p-8 rounded-2xl border border-zinc-800 shadow-2xl transform hover:scale-105 transition-transform duration-500">
+                                                            <RefreshCw className="w-16 h-16 text-zinc-600 animate-spin mx-auto mb-6" />
+                                                            <div className={`text-2xl font-black uppercase tracking-widest mb-2 ${teamColor} drop-shadow-[0_0_10px_currentColor]`}>{activeTeamName} w trakcie wyboru...</div>
+                                                            <div className="text-sm text-zinc-500 font-bold uppercase tracking-[0.3em]">Oczekuj na swoją kolej</div>
                                                         </div>
                                                     </div>
                                                 )}
@@ -732,42 +816,62 @@ export default function Lobby() {
                                                 {lobby.map_pool.map((mapName: string) => {
                                                     const isBanned = state.banned_maps?.includes(mapName);
                                                     const isPicked = state.picked_maps?.includes(mapName);
-                                                    
                                                     const votesForMap = Object.entries(state.votes || {}).filter(([userId, userVotes]) => (userVotes as string[]).includes(mapName));
-                                                    
                                                     const isMyVote = myVotes.includes(mapName);
 
                                                     return (
                                                         <div 
                                                             key={mapName}
                                                             onClick={() => !isBanned && !isPicked && isMyTurn ? handleVoteMap(mapName) : null}
-                                                            style={{ backgroundImage: `url(${getMapImage(mapName)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-                                                            className={`relative overflow-hidden rounded-md border flex flex-col justify-end p-4 transition-all duration-300 min-h-[250px]
-                                                                ${isBanned ? 'border-red-900/50 bg-red-950/10 grayscale' : 
-                                                                  isPicked ? 'border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.3)] scale-105 z-20' : 
-                                                                  isMyTurn ? (isMyVote ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)] -translate-y-2' : 'border-zinc-700 hover:border-yellow-500 cursor-pointer') : 
-                                                                  'border-zinc-800 opacity-60'}`}
+                                                            className={`relative overflow-hidden rounded-xl border-2 flex flex-col justify-end p-0 transition-all duration-500 h-[220px] md:h-[280px] cursor-pointer transform group
+                                                                ${isBanned ? 'border-red-900/40 grayscale-[0.8] opacity-50' : 
+                                                                  isPicked ? 'border-yellow-500 shadow-[0_0_40px_rgba(234,179,8,0.3)] scale-[1.03] z-20' : 
+                                                                  isMyTurn ? (isMyVote ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.5)] -translate-y-3' : 'border-zinc-700/50 hover:border-yellow-500 hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:-translate-y-2') : 
+                                                                  'border-zinc-800/50 opacity-80 hover:opacity-100'}`}
                                                         >
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e11] via-[#0e0e11]/60 to-transparent z-10"></div>
+                                                            {/* Tło Mapy */}
+                                                            <div className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110" style={{ backgroundImage: `url(${getMapImage(mapName)})` }} />
                                                             
-                                                            <div className="relative z-20 flex flex-col h-full justify-between">
-                                                                <div className="flex flex-wrap gap-1">
+                                                            {/* Gradient Cienia */}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-[#070708] via-[#070708]/50 to-transparent z-10" />
+
+                                                            {/* Nakładka BAN */}
+                                                            {isBanned && (
+                                                                <div className="absolute inset-0 bg-red-950/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center">
+                                                                    <div className="w-[150%] bg-red-600/20 py-2 border-y border-red-500/50 flex flex-col items-center transform -rotate-12 shadow-[0_0_30px_rgba(220,38,38,0.5)] backdrop-blur-md">
+                                                                        <Skull className="w-8 h-8 text-red-500 mb-1" />
+                                                                        <span className="text-red-500 font-black text-2xl tracking-[0.4em] uppercase drop-shadow-md">Zbanowana</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Nakładka PICK */}
+                                                            {isPicked && (
+                                                                <div className="absolute inset-0 bg-yellow-900/30 backdrop-blur-[2px] z-30 flex flex-col items-center justify-center">
+                                                                    <div className="w-[150%] bg-yellow-500/20 py-2 border-y border-yellow-500/50 flex flex-col items-center transform -rotate-12 shadow-[0_0_50px_rgba(234,179,8,0.5)] backdrop-blur-md">
+                                                                        <Crown className="w-8 h-8 text-yellow-500 mb-1" />
+                                                                        <span className="text-yellow-500 font-black text-2xl tracking-[0.4em] uppercase drop-shadow-md">Picked</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="relative z-20 p-4 md:p-5 flex flex-col h-full justify-between">
+                                                                {/* Ikony głosujących graczy */}
+                                                                <div className="flex flex-wrap gap-1.5 justify-end">
                                                                     {votesForMap.map(([userId]) => {
                                                                         const voter = lobby.players.find(p => p.user.id.toString() === userId);
                                                                         return voter && (
-                                                                            <img key={userId} src={voter.user.avatar_url} className="w-8 h-8 rounded-sm border-2 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" alt="vote" />
+                                                                            <div key={userId} className="relative">
+                                                                                <div className="absolute inset-0 bg-red-500 rounded-sm blur-md opacity-60"></div>
+                                                                                <img src={voter.user.avatar_url} className="relative w-8 h-8 rounded-sm border-2 border-red-500 shadow-xl" alt="vote" title={voter.user.nickname} />
+                                                                            </div>
                                                                         );
                                                                     })}
                                                                 </div>
 
-                                                                <div className="relative">
-                                                                    {isBanned && <div className="absolute inset-0 bg-red-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center z-30">
-                                                                                    <span className="text-red-500 font-black text-lg tracking-wider uppercase bg-black/80 px-3 py-1 rounded border border-red-500/30"><Skull className="w-10 h-10 text-red-500 mb-1" />ODRZUCONA</span>
-                                                                                </div>
-                                                                    }
-                                                                    {isPicked && <div className="text-yellow-500 font-black text-3xl absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 bg-black/50 px-3 py-1 rounded">WYBRANA</div>}
-                                                                    
-                                                                    <div className={`text-xl font-black uppercase tracking-widest ${isBanned ? 'text-zinc-600' : 'text-white'}`}>{mapName.replace('de_', '').replace('am_', '')}</div>
+                                                                {/* Nazwa Mapy */}
+                                                                <div className={`text-2xl md:text-3xl font-black uppercase tracking-widest drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] transition-colors duration-300 ${isBanned ? 'text-zinc-500 line-through decoration-red-500/70 decoration-4' : isPicked ? 'text-yellow-500' : 'text-white group-hover:text-yellow-400'}`}>
+                                                                    {mapName.replace('de_', '').replace('am_', '')}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -779,6 +883,7 @@ export default function Lobby() {
                                 })()}
                             </>
                         )}
+                        {/* ---------------- END VETO REDESIGN ---------------- */}
                         
                         {lobby.status === 'starting' && (
                             <div className="bg-[#0e0e11] border border-zinc-800/60 rounded-lg p-8 relative overflow-hidden min-h-[600px] flex flex-col items-center justify-center text-center">
@@ -856,30 +961,54 @@ export default function Lobby() {
 
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                                                 {lobby.match_status === 'live' ? (
-                                                    <button onClick={() => router.post(`/lobbies/${lobby.id}/match/pause`)} className="bg-yellow-500 hover:bg-yellow-400 text-black py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all">
+                                                    <button 
+                                                        onClick={() => router.post(`/lobbies/${lobby.id}/match/pause`)} 
+                                                        className="bg-yellow-500 hover:bg-yellow-400 text-black py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all"
+                                                    >
                                                         Pauza Techniczna
                                                     </button>
                                                 ) : (
-                                                    <button onClick={() => router.post(`/lobbies/${lobby.id}/match/pause`)} className="bg-blue-500 hover:bg-blue-400 text-black py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all">
+                                                    <button 
+                                                        disabled={lobby.match_status === 'finished'} 
+                                                        onClick={() => router.post(`/lobbies/${lobby.id}/match/pause`)} 
+                                                        className="bg-blue-500 hover:bg-blue-400 text-black py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
                                                         Wznów Mecz
                                                     </button>
                                                 )}
-
-                                                <button onClick={() => router.post(`/lobbies/${lobby.id}/match/action`, { action: 'restart_match' })} className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all">
+                                                <button 
+                                                    disabled={lobby.match_status === 'finished'} 
+                                                    onClick={() => router.post(`/lobbies/${lobby.id}/match/action`, { action: 'restart_match' })} 
+                                                    className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-800"
+                                                >
                                                     Restart Meczu
                                                 </button>
 
-                                                <button onClick={() => router.post(`/lobbies/${lobby.id}/match/action`, { action: 'restart_round' })} className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all" title="Restartuje bieżącą rundę do zera">
+                                                <button 
+                                                    disabled={lobby.match_status === 'finished'} 
+                                                    onClick={() => router.post(`/lobbies/${lobby.id}/match/action`, { action: 'restart_round' })} 
+                                                    className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-800" 
+                                                    title="Restartuje bieżącą rundę do zera"
+                                                >
                                                     Restart Rundy (Cofnij)
                                                 </button>
 
-                                                <button onClick={() => router.post(`/lobbies/${lobby.id}/match/action`, { action: 'end_warmup' })} className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all">
+                                                <button 
+                                                    disabled={lobby.match_status === 'finished'} 
+                                                    onClick={() => router.post(`/lobbies/${lobby.id}/match/action`, { action: 'end_warmup' })} 
+                                                    className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-500/20 disabled:hover:text-red-400"
+                                                >
                                                     Zakończ rozgrzewkę
                                                 </button>
 
-                                                <button onClick={() => router.post(`/lobbies/${lobby.id}/match/stop`)} className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all">
-                                                    Zakończ Mecz
-                                                </button>
+                                                {lobby.match_status !== 'finished' && (
+                                                    <button 
+                                                        onClick={() => setConfirmDialog('stop')} 
+                                                        className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 py-2.5 px-4 rounded font-black text-[10px] uppercase tracking-wider transition-all"
+                                                    >
+                                                        Zakończ Mecz
+                                                    </button>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-zinc-800">
@@ -1058,7 +1187,7 @@ export default function Lobby() {
                                                 onClick={() => {
                                                     const cmd = `connect ${lobby.server_ip}; password ${lobby.server_password || ''}`;
                                                     navigator.clipboard.writeText(cmd);
-                                                    alert('Skopiowano polecenie konsoli do schowka!');
+                                                    showToast('Skopiowano polecenie konsoli do schowka!', 'success');
                                                 }}
                                                 className="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 py-4 rounded-sm font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 transform skew-x-[-5deg]"
                                             >

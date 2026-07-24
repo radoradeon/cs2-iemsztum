@@ -439,11 +439,16 @@ class LobbyController extends Controller
             if (!empty($lobby->server_ip)) {
                 $rcon = $this->getRconForLobby($lobby);
                 
-                $rcon->sendCommand("matchid_endmatch");
+                $rcon->sendCommand("css_forceend");
+                
+                $rcon->sendCommand("kickall");
+                
                 $rcon->sendCommand("sv_password \"iemsztum2027\"");
+                
                 $rcon->sendCommand("map de_mirage"); 
             }
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("RCON Error in destroy: " . $e->getMessage());
         }
 
         Storage::delete('chats/lobby_' . $lobby->id . '.json');
@@ -466,7 +471,8 @@ class LobbyController extends Controller
                 $rcon->sendCommand("sv_password \"\"");
             }
 
-            $rcon->sendCommand("css plugins reload MatchZy");
+            $rcon->sendCommand("css_forceend");
+            $rcon->sendCommand("css_endmatch");
 
             $configUrl = env('APP_URL') . "/api/match/json-config/{$lobby->id}";
             $rcon->sendCommand("matchzy_loadmatch_url \"{$configUrl}\"");
@@ -557,13 +563,20 @@ class LobbyController extends Controller
     {
         if (Auth::id() !== $lobby->leader_id) return abort(403);
 
-        $fullServerConfig = '';
-        foreach (explode(';', env('CS2_SERVERS', '')) as $srv) {
-            if (str_contains($srv, $lobby->server_ip)) { $fullServerConfig = $srv; break; }
+        try {
+            if (!empty($lobby->server_ip)) {
+                $rcon = $this->getRconForLobby($lobby);
+                
+                $rcon->sendCommand("css_forceend");
+                $rcon->sendCommand("css_endmatch");
+                
+                $rcon->sendCommand("kickall");
+                $rcon->sendCommand("sv_password \"iemsztum2027\"");
+                $rcon->sendCommand("map de_mirage"); 
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("RCON Error in stopMatch: " . $e->getMessage());
         }
-
-        $rcon = new RconService($fullServerConfig ?: $lobby->server_ip . ':27015:');
-        $rcon->sendCommand("mp_endmatch_custom 1");
 
         $lobby->update(['match_status' => 'finished']);
         broadcast(new LobbyStateUpdated($lobby->id));
