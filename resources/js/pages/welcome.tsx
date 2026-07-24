@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import PromoBanner from '../components/PromoBanner';
+import LogoIemSztum from '../components/LogoIemSztum';
 
 interface SharedData {
     auth: {
@@ -63,9 +64,7 @@ export default function Welcome() {
             <nav className="fixed top-0 w-full z-50 bg-[#0a0a0c]/80 border-b border-zinc-800/60 backdrop-blur-xl">
                 <div className="max-w-[1800px] mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-sm flex items-center justify-center transform -skew-x-12 shadow-[0_0_15px_rgba(250,204,21,0.3)]">
-                            <Trophy className="w-4 h-4 text-black transform skew-x-12" strokeWidth={3} />
-                        </div>
+                        <LogoIemSztum className="w-10 h-10" />
                         <div className="text-xl font-black tracking-tighter text-white uppercase italic">
                             IEM <span className="text-yellow-500">SZTUM</span>
                         </div>
@@ -208,9 +207,7 @@ export default function Welcome() {
                 <footer className="border-t border-zinc-800/60 bg-[#0a0a0c] py-12">
                     <div className="max-w-[1800px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
                         <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-yellow-500 rounded-sm flex items-center justify-center transform -skew-x-12">
-                                <Trophy className="w-3 h-3 text-black transform skew-x-12" strokeWidth={3} />
-                            </div>
+                                <LogoIemSztum className="w-6 h-6" />
                             <span className="text-sm font-black text-white uppercase italic tracking-wider">IEM <span className="text-yellow-500">SZTUM</span></span>
                         </div>
                         <div className="text-zinc-500 text-xs font-bold uppercase tracking-[0.2em]">

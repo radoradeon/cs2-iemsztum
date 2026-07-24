@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import PromoBanner from '../components/PromoBanner';
+import LogoIemSztum from '../components/LogoIemSztum';
 
 interface User {
     id: number;
@@ -93,9 +94,7 @@ export default function Dashboard() {
                 <div className="max-w-[1800px] mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-12">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-sm flex items-center justify-center transform -skew-x-12 shadow-[0_0_15px_rgba(250,204,21,0.3)]">
-                                <Trophy className="w-4 h-4 text-black transform skew-x-12" strokeWidth={3} />
-                            </div>
+                            <LogoIemSztum className="w-10 h-10" />
                             <div className="text-xl font-black tracking-tighter text-white uppercase italic">
                                 IEM <span className="text-yellow-500">SZTUM</span>
                             </div>
