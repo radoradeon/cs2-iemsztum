@@ -1,7 +1,7 @@
 import { Head, usePage, router, Link } from '@inertiajs/react';
 import { 
     Trophy, Target, Crown, ChevronRight, Clock, Server, Download,
-    Map, Key, Gamepad2, Hash, Play, Swords, ChevronLeft
+    Map, Key, Gamepad2, Hash, Play, Swords, ChevronLeft, LogOut
 } from 'lucide-react';
 import React, { useState } from 'react';
 import PromoBanner from '../components/PromoBanner';
@@ -63,6 +63,7 @@ export default function Dashboard() {
     const user = auth.user;
     const levelInfo = getLevelInfo(user.elo);
     const progress = user.elo >= 2500 ? 100 : ((user.elo - levelInfo.min) / (levelInfo.max - levelInfo.min)) * 100;
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const [lobbyCode, setLobbyCode] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -125,21 +126,55 @@ export default function Dashboard() {
                             <span className="text-xs font-black text-white">{server_stats.available}<span className="text-zinc-600">/{server_stats.total}</span></span>
                         </div>
 
-                        <div className="flex items-center gap-3 cursor-pointer group">
-                            <div className="flex flex-col items-end">
-                                <span className="text-xs font-bold text-white group-hover:text-yellow-400 transition-colors">{user.nickname}</span>
-                                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{user.role}</span>
-                            </div>
-                            <div className="relative">
-                                <img
-                                    src={user.avatar_url}
-                                    alt="Avatar"
-                                    className="w-10 h-10 rounded-sm bg-zinc-800 object-cover border border-zinc-700 group-hover:border-yellow-500 transition-colors"
-                                />
-                                <div className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-[#0a0a0c] rounded-full flex items-center justify-center">
-                                    <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                        <div className="relative">
+                            <div 
+                                className="flex items-center gap-3 cursor-pointer group"
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            >
+                                <div className="flex flex-col items-end">
+                                    <span className="text-xs font-bold text-white group-hover:text-yellow-400 transition-colors">{user.nickname}</span>
+                                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{user.role}</span>
+                                </div>
+                                <div className="relative">
+                                    <img
+                                        src={user.avatar_url}
+                                        alt="Avatar"
+                                        className="w-10 h-10 rounded-sm bg-zinc-800 object-cover border border-zinc-700 group-hover:border-yellow-500 transition-colors"
+                                    />
+                                    <div className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-[#0a0a0c] rounded-full flex items-center justify-center">
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                                    </div>
                                 </div>
                             </div>
+
+                            {isDropdownOpen && (
+                                <>
+                                    <div 
+                                        className="fixed inset-0 z-40 cursor-default" 
+                                        onClick={() => setIsDropdownOpen(false)}
+                                    ></div>
+                                    
+                                    <div className="absolute right-0 mt-3 w-56 bg-[#0a0a0c]/95 backdrop-blur-xl border border-zinc-800/80 rounded-xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] z-50 p-2 animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200">
+                                        
+                                        <div className="px-3 py-2 border-b border-zinc-800/60 mb-2">
+                                            <span className="block text-[9px] text-zinc-500 uppercase tracking-widest font-bold">Dodatkowa nawigacja</span>
+                                            {/* <span className="block text-xs text-zinc-300 font-black truncate mt-0.5">{user.nickname}</span> */}
+                                        </div>
+
+                                        <button
+                                            onClick={() => router.post('/logout')}
+                                            className="relative w-full text-left px-3 py-2.5 text-xs font-bold text-zinc-400 hover:text-red-400 uppercase tracking-widest transition-all duration-300 flex items-center gap-3 rounded-lg overflow-hidden group"
+                                        >
+                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.9)] transition-all duration-300 group-hover:h-3/4 rounded-r-full"></div>
+                                            
+                                            <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                                            <LogOut className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover:translate-x-0.5" /> 
+                                            <span className="relative z-10 transition-transform duration-300 group-hover:translate-x-0.5">Wyloguj się</span>
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

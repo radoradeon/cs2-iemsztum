@@ -50,6 +50,8 @@ Route::middleware(['auth'])->group(function () {
         ]);
     })->name('dashboard');
 
+    Route::post('/logout', [SteamLoginController::class, 'logout'])->name('logout');
+
 
     Route::post('/lobbies', [LobbyController::class, 'store'])->name('lobbies.store');
     Route::post('/lobbies/join', [LobbyController::class, 'join'])->name('lobbies.join');
