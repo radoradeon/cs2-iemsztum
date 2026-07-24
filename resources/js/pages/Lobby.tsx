@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import CookieConsent from '../components/CookieConsent';
 
 interface Player {
     id: number;
@@ -1321,6 +1322,7 @@ export default function Lobby() {
                     </div>
                 </div>
             </div>
+            <CookieConsent />
         </div>
     );
 }

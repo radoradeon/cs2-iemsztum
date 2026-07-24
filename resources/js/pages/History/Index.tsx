@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ChevronLeft, Trophy, Calendar, Swords, ChevronRight, ChevronDown } from 'lucide-react';
 import React, { useState } from 'react';
+import CookieConsent from '../../components/CookieConsent';
 
 const getMapImage = (mapName: string) => {
     if (!mapName) return '';
@@ -159,6 +160,7 @@ export default function HistoryIndex() {
                     </div>
                 )}
             </main>
+            <CookieConsent />
         </div>
     );
 }

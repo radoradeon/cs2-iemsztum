@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ChevronLeft, Trophy, Calendar, Download, Map as MapIcon, Crosshair, Crown, Zap, Flame, Skull, Target, ArrowUpRight, ArrowDownRight, Info, Activity, X, Shield, Star } from 'lucide-react';
 import React, { useState } from 'react';
+import CookieConsent from '../../components/CookieConsent';
 
 const getMapImage = (mapName: string) => {
     if (!mapName) return '';
@@ -468,6 +469,7 @@ export default function HistoryShow() {
                     )}
                 </div>
             </main>
+            <CookieConsent />
         </div>
     );
 }

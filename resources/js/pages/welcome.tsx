@@ -6,6 +6,7 @@ import {
 import React, { useEffect, useRef, useState } from 'react';
 import PromoBanner from '../components/PromoBanner';
 import LogoIemSztum from '../components/LogoIemSztum';
+import CookieConsent from '../components/CookieConsent';
 
 interface SharedData {
     auth: {
@@ -217,6 +218,7 @@ export default function Welcome() {
                 </footer>
 
             </div>
+            <CookieConsent />
         </div>
     );
 }

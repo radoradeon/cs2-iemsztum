@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ChevronLeft, Crown, Medal, Award, Target, Flame, ChevronDown } from 'lucide-react';
 import React, { useState } from 'react';
+import CookieConsent from '../../components/CookieConsent';
 
 interface User {
     id: number;
@@ -194,6 +195,7 @@ export default function StatisticsIndex() {
                     )}
                 </div>
             </main>
+            <CookieConsent />
         </div>
     );
 }
