@@ -17,10 +17,13 @@ class StatisticsController extends Controller
         // 2. Średni rating z tabeli match_history_players malejąco
         // 3. Łączna liczba MVP malejąco
         // 4. Łączna liczba zabójств (Kills) malejąco
-        $players = User::select('users.*')
-            ->leftJoin('match_history_players', 'users.id', '=', 'match_history_players.user_id')
-            ->selectRaw('COALESCE(AVG(match_history_players.rating), 1.00) as avg_rating')
-            ->groupBy('users.id')
+        $players = User::query()
+            ->select('users.*')
+            ->selectSub(function ($query) {
+                $query->from('match_history_players')
+                      ->selectRaw('COALESCE(AVG(rating), 1.00)')
+                      ->whereColumn('match_history_players.user_id', 'users.id');
+            }, 'avg_rating')
             ->orderBy('users.elo', 'desc')
             ->orderBy('avg_rating', 'desc')
             ->orderBy('users.mvps', 'desc')
