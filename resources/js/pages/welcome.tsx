@@ -81,9 +81,9 @@ export default function Welcome() {
                                 <Link href={route('login')} className="text-xs font-bold text-zinc-400 uppercase tracking-[0.2em] hover:text-white transition-colors px-4">
                                     Logowanie
                                 </Link>
-                                <Link href={route('register')} className="bg-yellow-500 hover:bg-yellow-400 text-black px-8 py-3 rounded-sm font-black text-xs uppercase tracking-[0.2em] transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)] hover:shadow-[0_0_25px_rgba(234,179,8,0.4)] flex items-center justify-center gap-2 transform skew-x-[-10deg]">
+                                {/* <Link href={route('register')} className="bg-yellow-500 hover:bg-yellow-400 text-black px-8 py-3 rounded-sm font-black text-xs uppercase tracking-[0.2em] transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)] hover:shadow-[0_0_25px_rgba(234,179,8,0.4)] flex items-center justify-center gap-2 transform skew-x-[-10deg]">
                                     <span className="block transform skew-x-[10deg]">Zarejestruj się</span>
-                                </Link>
+                                </Link> */}
                             </>
                         )}
                     </div>
